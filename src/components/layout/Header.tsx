@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Globe, Bell, Sparkles } from 'lucide-react';
+import { Sun, Moon, Globe, Bell, Sparkles, Smartphone } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
+
+interface HeaderProps {
+  onOpenAppAluno?: () => void;
+}
 
 const FRASES_MOTIVACIONAIS = [
   "Liberte Seu Potencial. Transforme Vidas. Bem-vindo a Outro Dia de Excelência!",
@@ -14,7 +18,7 @@ const FRASES_MOTIVACIONAIS = [
   "Foco no processo. A alta performance é uma consequência diária.",
 ];
 
-export const Header: React.FC = () => {
+export const Header: React.FC<HeaderProps> = ({ onOpenAppAluno }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [fraseIndex, setFraseIndex] = useState(0);
@@ -42,7 +46,18 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Controles da Direita */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
+        {onOpenAppAluno && (
+          <button
+            onClick={onOpenAppAluno}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 text-xs font-bold transition-all shadow-sm active:scale-95"
+            title="Visualizar App Mobile do Aluno"
+          >
+            <Smartphone className="size-3.5" />
+            <span className="hidden sm:inline">Ver App Aluno</span>
+          </button>
+        )}
+
         {/* Seletor de Idioma */}
         <div className="relative">
           <button

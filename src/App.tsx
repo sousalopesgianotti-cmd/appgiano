@@ -222,7 +222,14 @@ export function App() {
           {/* Área Central de Conteúdo */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Cabeçalho Superior com Frase e Idiomas */}
-            <Header />
+            <Header
+              onOpenAppAluno={() => {
+                setIsMobileView(true);
+                if (typeof window !== 'undefined' && window.history) {
+                  window.history.pushState({}, '', '/app');
+                }
+              }}
+            />
 
             {/* Conteúdo Dinâmico Baseado na Aba */}
             <main className="flex-1 overflow-y-auto">
