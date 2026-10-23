@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { ClientesPage } from '@/pages/professor/ClientesPage';
 import { AppAlunoPage } from '@/pages/aluno/AppAlunoPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
+import { ConfiguracoesPage } from '@/pages/professor/ConfiguracoesPage';
 import { DEFAULT_EXERCICIOS } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
@@ -339,7 +340,11 @@ function AppContent() {
             </div>
           )}
 
-          {currentTab !== 'clientes' && currentTab !== 'exercicios' && (
+          {currentTab === 'configuracoes' && (
+            <ConfiguracoesPage />
+          )}
+
+          {currentTab !== 'clientes' && currentTab !== 'exercicios' && currentTab !== 'configuracoes' && (
             <div className="p-12 text-center text-neutral-400 space-y-2">
               <h2 className="text-xl font-bold text-neutral-700 dark:text-neutral-300 capitalize">
                 {currentTab}
