@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
       </div>
 
-      {/* Centro: Alternador Híbrido de Modo (Dono vs Meu Personal) */}
+      {/* Centro: Alternador Híbrido de Modo (Gestão vs Meu Personal) */}
       {isSuperAdmin && onViewModeChange && (
         <div className="flex items-center p-1 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/60 shadow-inner">
           <button
@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Gerenciar Professores e Planos do SaaS"
           >
             <Crown className="size-3.5" />
-            <span>Modo Dono</span>
+            <span>Modo Gestão</span>
           </button>
 
           <button
@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative">
           <button
             onClick={() => setLangMenuOpen(!langMenuOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-bold text-neutral-700 dark:text-neutral-300 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-bold text-neutral-700 dark:text-neutral-200 transition-all shadow-sm"
             title="Alterar Idioma"
           >
             <Globe className="size-3.5 text-amber-500" />
@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {langMenuOpen && (
-            <div className="absolute right-0 mt-2 w-36 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl p-1.5 space-y-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-36 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-2xl p-1.5 space-y-1 z-50 animate-in fade-in zoom-in-95 duration-150">
               {idiomas.map((item) => (
                 <button
                   key={item.code}
@@ -134,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Alternador de Tema Claro/Escuro */}
         <button
           onClick={toggleTheme}
-          className="size-9 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-300 transition-all shadow-sm"
+          className="size-9 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 transition-all shadow-sm cursor-pointer"
           title={theme === 'dark' ? 'Mudar para Modo Claro' : 'Mudar para Modo Escuro'}
         >
           {theme === 'dark' ? (
@@ -146,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Notificações */}
         <button
-          className="relative size-9 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-300 transition-colors"
+          className="relative size-9 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-700 dark:text-neutral-200 transition-all shadow-sm cursor-pointer"
           title="Notificações"
         >
           <Bell className="size-4" />

@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {viewMode === 'owner' ? (
               <>
                 <Crown className="size-3 text-amber-500" />
-                <span className="text-amber-600 dark:text-amber-400">Painel do Produto (SaaS)</span>
+                <span className="text-amber-600 dark:text-amber-400">Modo Gestão (SaaS)</span>
               </>
             ) : (
               <>

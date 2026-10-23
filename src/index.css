@@ -2,6 +2,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-neutral-850: #1f1f23;
+}
+
 @layer base {
   :root {
     color-scheme: dark light;
