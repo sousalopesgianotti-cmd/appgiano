@@ -122,7 +122,7 @@ const TREINOS_INICIAIS: Treino[] = [
   },
 ];
 
-export function App() {
+function AppContent() {
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -227,154 +227,154 @@ export function App() {
   // Se não houver usuário autenticado, exibe a tela de login
   if (!currentUser) {
     return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <LoginPage onLogin={handleLogin} />
-          <Toaster position="top-center" richColors />
-        </LanguageProvider>
-      </ThemeProvider>
+      <>
+        <LoginPage onLogin={handleLogin} />
+        <Toaster position="top-center" richColors />
+      </>
     );
   }
 
   // Se estiver na rota do aluno (/app)
   if (isMobileView) {
     return (
-      <ThemeProvider>
-        <LanguageProvider>
-          <div className="relative min-h-screen bg-neutral-950">
-            {/* Botão de alternância flutuante de demonstração */}
-            <button
-              onClick={() => {
-                setIsMobileView(false);
-                if (typeof window !== 'undefined' && window.history) {
-                  window.history.pushState({}, '', '/');
-                }
-              }}
-              className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur"
-              title="Voltar ao Painel do Personal"
-            >
-              <Monitor className="size-3.5 text-amber-500" />
-              <span>Painel Personal</span>
-            </button>
+      <div className="relative min-h-screen bg-neutral-950">
+        {/* Botão de alternância flutuante de demonstração */}
+        <button
+          onClick={() => {
+            setIsMobileView(false);
+            if (typeof window !== 'undefined' && window.history) {
+              window.history.pushState({}, '', '/');
+            }
+          }}
+          className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur"
+          title="Voltar ao Painel do Personal"
+        >
+          <Monitor className="size-3.5 text-amber-500" />
+          <span>Painel Personal</span>
+        </button>
 
-            <AppAlunoPage
-              alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
-              alunos={alunos}
-              treinos={TREINOS_INICIAIS}
-              onLogout={handleLogout}
-            />
-            <Toaster position="top-center" richColors />
-          </div>
-        </LanguageProvider>
-      </ThemeProvider>
+        <AppAlunoPage
+          alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
+          alunos={alunos}
+          treinos={TREINOS_INICIAIS}
+          onLogout={handleLogout}
+        />
+        <Toaster position="top-center" richColors />
+      </div>
     );
   }
 
   // Painel Web Principal (Personal Trainer & ADM)
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <div className="min-h-screen flex bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans selection:bg-amber-500/30">
-          {/* Barra Lateral Retrátil (Estilo Nexur) */}
-          <Sidebar
-            currentTab={currentTab}
-            onTabChange={setCurrentTab}
-            userRole={userRole}
-            userName={currentUser.nome}
-            onLogout={handleLogout}
-          />
+    <div className="min-h-screen flex bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans selection:bg-amber-500/30">
+      {/* Barra Lateral Retrátil (Estilo Nexur) */}
+      <Sidebar
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        userRole={userRole}
+        userName={currentUser.nome}
+        onLogout={handleLogout}
+      />
 
-          {/* Área Central de Conteúdo */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Cabeçalho Superior com Frase e Idiomas */}
-            <Header
-              onOpenAppAluno={() => {
+      {/* Área Central de Conteúdo */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Cabeçalho Superior com Frase e Idiomas */}
+        <Header
+          onOpenAppAluno={() => {
+            setIsMobileView(true);
+            if (typeof window !== 'undefined' && window.history) {
+              window.history.pushState({}, '', '/app');
+            }
+          }}
+        />
+
+        {/* Conteúdo Dinâmico Baseado na Aba */}
+        <main className="flex-1 overflow-y-auto">
+          {currentTab === 'clientes' && (
+            <ClientesPage
+              alunos={alunos}
+              limiteAlunos={25}
+              onAddAluno={handleAddAluno}
+              onUpdateAluno={handleUpdateAluno}
+              onDeleteAluno={handleDeleteAluno}
+              onSelectAlunoTreinos={() => {
                 setIsMobileView(true);
                 if (typeof window !== 'undefined' && window.history) {
                   window.history.pushState({}, '', '/app');
                 }
               }}
             />
+          )}
 
-            {/* Conteúdo Dinâmico Baseado na Aba */}
-            <main className="flex-1 overflow-y-auto">
-              {currentTab === 'clientes' && (
-                <ClientesPage
-                  alunos={alunos}
-                  limiteAlunos={25}
-                  onAddAluno={handleAddAluno}
-                  onUpdateAluno={handleUpdateAluno}
-                  onDeleteAluno={handleDeleteAluno}
-                  onSelectAlunoTreinos={() => {
-                    setIsMobileView(true);
-                    if (typeof window !== 'undefined' && window.history) {
-                      window.history.pushState({}, '', '/app');
-                    }
-                  }}
-                />
-              )}
+          {currentTab === 'exercicios' && (
+            <div className="p-8 max-w-7xl mx-auto space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-black tracking-tight">Biblioteca de Exercícios</h1>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Catálogo completo com vídeos de execução e orientações posturais ({DEFAULT_EXERCICIOS.length} cadastrados)
+                  </p>
+                </div>
+              </div>
 
-              {currentTab === 'exercicios' && (
-                <div className="p-8 max-w-7xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-2xl font-black tracking-tight">Biblioteca de Exercícios</h1>
-                      <p className="text-xs text-neutral-500 mt-1">
-                        Catálogo completo com vídeos de execução e orientações posturais ({DEFAULT_EXERCICIOS.length} cadastrados)
-                      </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {DEFAULT_EXERCICIOS.map((ex) => (
+                  <div
+                    key={ex.id}
+                    className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-sm space-y-3 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">
+                        {ex.grupo}
+                      </span>
+                      <h3 className="font-bold text-sm leading-snug">{ex.titulo}</h3>
+                      <p className="text-xs text-neutral-500 line-clamp-2">{ex.orientacoes}</p>
                     </div>
+                    <span className="text-[11px] font-semibold text-neutral-400">
+                      Equipamento: {ex.equipamento}
+                    </span>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {DEFAULT_EXERCICIOS.map((ex) => (
-                      <div
-                        key={ex.id}
-                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-sm space-y-3 flex flex-col justify-between"
-                      >
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">
-                            {ex.grupo}
-                          </span>
-                          <h3 className="font-bold text-sm leading-snug">{ex.titulo}</h3>
-                          <p className="text-xs text-neutral-500 line-clamp-2">{ex.orientacoes}</p>
-                        </div>
-                        <span className="text-[11px] font-semibold text-neutral-400">
-                          Equipamento: {ex.equipamento}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {currentTab !== 'clientes' && currentTab !== 'exercicios' && (
+            <div className="p-12 text-center text-neutral-400 space-y-2">
+              <h2 className="text-xl font-bold text-neutral-700 dark:text-neutral-300 capitalize">
+                {currentTab}
+              </h2>
+              <p className="text-xs">Módulo pronto para expansão.</p>
+            </div>
+          )}
+        </main>
+      </div>
 
-              {currentTab !== 'clientes' && currentTab !== 'exercicios' && (
-                <div className="p-12 text-center text-neutral-400 space-y-2">
-                  <h2 className="text-xl font-bold text-neutral-700 dark:text-neutral-300 capitalize">
-                    {currentTab}
-                  </h2>
-                  <p className="text-xs">Módulo pronto para expansão.</p>
-                </div>
-              )}
-            </main>
-          </div>
+      {/* Botão flutuante para testar o App do Aluno no Celular */}
+      <button
+        onClick={() => {
+          setIsMobileView(true);
+          if (typeof window !== 'undefined' && window.history) {
+            window.history.pushState({}, '', '/app');
+          }
+        }}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
+        title="Abrir Pré-visualização do App do Aluno"
+      >
+        <Smartphone className="size-4 stroke-[2.5]" />
+        <span>Ver App do Aluno</span>
+      </button>
 
-          {/* Botão flutuante para testar o App do Aluno no Celular */}
-          <button
-            onClick={() => {
-              setIsMobileView(true);
-              if (typeof window !== 'undefined' && window.history) {
-                window.history.pushState({}, '', '/app');
-              }
-            }}
-            className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
-            title="Abrir Pré-visualização do App do Aluno"
-          >
-            <Smartphone className="size-4 stroke-[2.5]" />
-            <span>Ver App do Aluno</span>
-          </button>
-        </div>
+      <Toaster position="top-right" richColors />
+    </div>
+  );
+}
 
-        <Toaster position="top-right" richColors />
+export function App() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AppContent />
       </LanguageProvider>
     </ThemeProvider>
   );
