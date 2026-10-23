@@ -8,8 +8,10 @@ import { ClientesPage } from '@/pages/professor/ClientesPage';
 import { AppAlunoPage } from '@/pages/aluno/AppAlunoPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ConfiguracoesPage } from '@/pages/professor/ConfiguracoesPage';
+import { ProfessoresPage } from '@/pages/admin/ProfessoresPage';
+import { PlanosPage } from '@/pages/admin/PlanosPage';
 import { DEFAULT_EXERCICIOS } from '@/lib/exercicios.data';
-import type { Aluno, Treino, AppRole } from '@/lib/types';
+import type { Aluno, Treino, AppRole, Professor } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
 
 // Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
@@ -123,6 +125,54 @@ const TREINOS_INICIAIS: Treino[] = [
   },
 ];
 
+// Dados iniciais de Professores para gestão do Dono do Produto (SaaS)
+const PROFESSORES_INICIAIS: Professor[] = [
+  {
+    id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    nome: "André Gianotti (Dono do Produto)",
+    email: "sousalopesgianotti@gmail.com",
+    telefone: "11988887777",
+    plano_nome: "Studio Ilimitado",
+    limite_alunos: 9999,
+    valor_mensalidade: 0,
+    ativo: true,
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "prof_carlos_eduardo",
+    nome: "Carlos Eduardo Silva",
+    email: "carlos.personal@gmail.com",
+    telefone: "11998765432",
+    plano_nome: "Starter 10",
+    limite_alunos: 10,
+    valor_mensalidade: 49,
+    ativo: true,
+    created_at: "2026-02-15T00:00:00Z",
+  },
+  {
+    id: "prof_fernanda_lima",
+    nome: "Fernanda Lima Fitness",
+    email: "fernanda.treinadora@gmail.com",
+    telefone: "11987654321",
+    plano_nome: "Pro 30",
+    limite_alunos: 30,
+    valor_mensalidade: 89,
+    ativo: true,
+    created_at: "2026-03-01T00:00:00Z",
+  },
+  {
+    id: "prof_rodrigo_coach",
+    nome: "Rodrigo Assessoria Esportiva",
+    email: "rodrigo.coach@gmail.com",
+    telefone: "11976543210",
+    plano_nome: "Elite 60",
+    limite_alunos: 60,
+    valor_mensalidade: 149,
+    ativo: false,
+    created_at: "2026-03-10T00:00:00Z",
+  },
+];
+
 function AppContent() {
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -132,8 +182,63 @@ function AppContent() {
     return false;
   });
 
-  const [currentTab, setCurrentTab] = useState('clientes');
+  // Modo de visualização híbrido: 'owner' (Dono da plataforma) ou 'trainer' (Personal)
+  const [viewMode, setViewMode] = useState<'owner' | 'trainer'>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_view_mode') as 'owner' | 'trainer';
+      if (saved === 'owner' || saved === 'trainer') return saved;
+    }
+    return 'owner';
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_view_mode', viewMode);
+    }
+  }, [viewMode]);
+
+  const [currentTab, setCurrentTab] = useState(() => {
+    return viewMode === 'owner' ? 'professores' : 'clientes';
+  });
   const [userRole, setUserRole] = useState<AppRole>('professor');
+
+  // Gestão de Professores no SaaS (persiste no localStorage)
+  const [professores, setProfessores] = useState<Professor[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_professores_db');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return PROFESSORES_INICIAIS;
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_professores_db', JSON.stringify(professores));
+    }
+  }, [professores]);
+
+  const handleAddProfessor = async (novo: Omit<Professor, 'id' | 'created_at'>) => {
+    const profCriado: Professor = {
+      ...novo,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    setProfessores((prev) => [profCriado, ...prev]);
+  };
+
+  const handleUpdateProfessor = async (id: string, patch: Partial<Professor>) => {
+    setProfessores((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
+    );
+  };
+
+  const handleDeleteProfessor = async (id: string) => {
+    setProfessores((prev) => prev.filter((p) => p.id !== id));
+  };
 
   // Gestão de sessão de autenticação (persiste no localStorage)
   const [currentUser, setCurrentUser] = useState<{
@@ -272,6 +377,7 @@ function AppContent() {
       <Sidebar
         currentTab={currentTab}
         onTabChange={setCurrentTab}
+        viewMode={viewMode}
         userRole={userRole}
         userName={currentUser.nome}
         onLogout={handleLogout}
@@ -281,6 +387,12 @@ function AppContent() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Cabeçalho Superior com Frase e Idiomas */}
         <Header
+          viewMode={viewMode}
+          onViewModeChange={(m) => {
+            setViewMode(m);
+            setCurrentTab(m === 'owner' ? 'professores' : 'clientes');
+          }}
+          isSuperAdmin={true}
           onOpenAppAluno={() => {
             setIsMobileView(true);
             if (typeof window !== 'undefined' && window.history) {
@@ -291,10 +403,24 @@ function AppContent() {
 
         {/* Conteúdo Dinâmico Baseado na Aba */}
         <main className="flex-1 overflow-y-auto">
+          {currentTab === 'professores' && (
+            <ProfessoresPage
+              professores={professores}
+              alunos={alunos}
+              onAddProfessor={handleAddProfessor}
+              onUpdateProfessor={handleUpdateProfessor}
+              onDeleteProfessor={handleDeleteProfessor}
+            />
+          )}
+
+          {currentTab === 'planos' && (
+            <PlanosPage />
+          )}
+
           {currentTab === 'clientes' && (
             <ClientesPage
               alunos={alunos}
-              limiteAlunos={25}
+              limiteAlunos={viewMode === 'owner' ? 9999 : 50}
               onAddAluno={handleAddAluno}
               onUpdateAluno={handleUpdateAluno}
               onDeleteAluno={handleDeleteAluno}
@@ -344,7 +470,7 @@ function AppContent() {
             <ConfiguracoesPage />
           )}
 
-          {currentTab !== 'clientes' && currentTab !== 'exercicios' && currentTab !== 'configuracoes' && (
+          {currentTab !== 'professores' && currentTab !== 'planos' && currentTab !== 'clientes' && currentTab !== 'exercicios' && currentTab !== 'configuracoes' && (
             <div className="p-12 text-center text-neutral-400 space-y-2">
               <h2 className="text-xl font-bold text-neutral-700 dark:text-neutral-300 capitalize">
                 {currentTab}

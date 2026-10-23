@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Globe, Bell, Sparkles, Smartphone } from 'lucide-react';
+import { Sun, Moon, Globe, Bell, Sparkles, Smartphone, Crown, Dumbbell } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
 interface HeaderProps {
   onOpenAppAluno?: () => void;
+  viewMode?: 'owner' | 'trainer';
+  onViewModeChange?: (mode: 'owner' | 'trainer') => void;
+  isSuperAdmin?: boolean;
 }
 
 const FRASES_MOTIVACIONAIS = [
@@ -18,7 +21,12 @@ const FRASES_MOTIVACIONAIS = [
   "Foco no processo. A alta performance é uma consequência diária.",
 ];
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAppAluno }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onOpenAppAluno,
+  viewMode = 'owner',
+  onViewModeChange,
+  isSuperAdmin = true,
+}) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const [fraseIndex, setFraseIndex] = useState(0);
@@ -36,17 +44,48 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAppAluno }) => {
   ];
 
   return (
-    <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Frase motivacional com brilho */}
-      <div className="flex items-center gap-2.5 max-w-xl truncate">
+    <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-4">
+      {/* Lado Esquerdo: Frase motivacional com brilho */}
+      <div className="flex items-center gap-2.5 max-w-sm sm:max-w-md truncate">
         <Sparkles className="size-4 text-amber-500 shrink-0 animate-pulse" />
-        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 truncate tracking-wide">
+        <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 truncate tracking-wide hidden md:inline">
           {FRASES_MOTIVACIONAIS[fraseIndex]}
         </span>
       </div>
 
+      {/* Centro: Alternador Híbrido de Modo (Dono vs Meu Personal) */}
+      {isSuperAdmin && onViewModeChange && (
+        <div className="flex items-center p-1 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/60 shadow-inner">
+          <button
+            onClick={() => onViewModeChange('owner')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              viewMode === 'owner'
+                ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/25 scale-[1.02]'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+            }`}
+            title="Gerenciar Professores e Planos do SaaS"
+          >
+            <Crown className="size-3.5" />
+            <span>Modo Dono</span>
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('trainer')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              viewMode === 'trainer'
+                ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/25 scale-[1.02]'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+            }`}
+            title="Prescrever treinos e gerenciar meus próprios alunos"
+          >
+            <Dumbbell className="size-3.5" />
+            <span>Meu Personal</span>
+          </button>
+        </div>
+      )}
+
       {/* Controles da Direita */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {onOpenAppAluno && (
           <button
             onClick={onOpenAppAluno}

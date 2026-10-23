@@ -1,5 +1,20 @@
 export type AppRole = 'admin' | 'professor' | 'aluno';
 
+export type PlanoNome = 'Starter 10' | 'Pro 30' | 'Elite 60' | 'Studio Ilimitado';
+
+export type Professor = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  foto_url?: string;
+  plano_nome: PlanoNome;
+  limite_alunos: number;
+  valor_mensalidade: number; // valor pago pelo professor ao Dono
+  ativo: boolean;
+  created_at: string;
+};
+
 export type UserProfile = {
   id: string;
   nome: string;

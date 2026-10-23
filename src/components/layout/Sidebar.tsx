@@ -11,7 +11,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  Crown,
+  Layers
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -20,6 +22,7 @@ import type { AppRole } from '@/lib/types';
 type SidebarProps = {
   currentTab: string;
   onTabChange: (tab: string) => void;
+  viewMode?: 'owner' | 'trainer';
   userRole?: AppRole;
   userName?: string;
   userEmail?: string;
@@ -30,6 +33,7 @@ type SidebarProps = {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onTabChange,
+  viewMode = 'owner',
   userRole = 'professor',
   userName = 'André Gianotti',
   userEmail = 'contato@giano.com.br',
@@ -39,20 +43,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
 
-  const menuItems = [
+  const ownerMenuItems = [
+    { id: 'professores', label: 'Professores & Cotas', icon: Users },
+    { id: 'planos', label: 'Planos & Pacotes', icon: Layers },
+    { id: 'configuracoes', label: t('menu.configuracoes'), icon: Settings },
+  ];
+
+  const trainerMenuItems = [
     { id: 'clientes', label: t('menu.clientes'), icon: Users },
     { id: 'exercicios', label: t('menu.exercicios'), icon: Dumbbell },
     { id: 'treinos', label: t('menu.treinos'), icon: Library },
     { id: 'avaliacoes', label: t('menu.avaliacoes'), icon: ClipboardCheck },
     { id: 'financeiro', label: t('menu.financeiro'), icon: DollarSign },
     { id: 'chat', label: t('menu.chat'), icon: MessageSquare },
+    { id: 'configuracoes', label: t('menu.configuracoes'), icon: Settings },
   ];
 
-  if (userRole === 'admin') {
-    menuItems.push({ id: 'professores', label: t('menu.professores'), icon: ShieldCheck });
-  }
-
-  menuItems.push({ id: 'configuracoes', label: t('menu.configuracoes'), icon: Settings });
+  const menuItems = viewMode === 'owner' ? ownerMenuItems : trainerMenuItems;
 
   return (
     <aside
@@ -79,6 +86,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
         </button>
       </div>
+
+      {/* Mode Indicator Badge */}
+      {!collapsed && (
+        <div className="px-3 pt-3 pb-1">
+          <div className="px-2.5 py-1 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200/80 dark:border-neutral-700/60 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+            {viewMode === 'owner' ? (
+              <>
+                <Crown className="size-3 text-amber-500" />
+                <span className="text-amber-600 dark:text-amber-400">Painel do Produto (SaaS)</span>
+              </>
+            ) : (
+              <>
+                <Dumbbell className="size-3 text-amber-500" />
+                <span>Gestão de Alunos</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Navigation List */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
