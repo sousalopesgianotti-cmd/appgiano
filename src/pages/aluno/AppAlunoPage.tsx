@@ -34,6 +34,7 @@ type AppAlunoPageProps = {
   alunos: Aluno[];
   treinos: Treino[];
   onSalvarExecucao?: (execucao: Omit<TreinoExecucao, 'id'>) => Promise<void>;
+  onLogout?: () => void;
 };
 
 export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
@@ -41,6 +42,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   alunos,
   treinos,
   onSalvarExecucao,
+  onLogout,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -127,6 +129,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     setAlunoLogado(null);
     localStorage.removeItem('giano_aluno_ativo_id');
     setMenuAberto(false);
+    if (onLogout) {
+      onLogout();
+    }
   };
 
   const toggleSerie = (exIdx: number, serieNum: number, descanso: number) => {

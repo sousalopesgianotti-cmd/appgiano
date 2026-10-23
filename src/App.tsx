@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { ClientesPage } from '@/pages/professor/ClientesPage';
 import { AppAlunoPage } from '@/pages/aluno/AppAlunoPage';
+import { LoginPage } from '@/pages/auth/LoginPage';
 import { DEFAULT_EXERCICIOS } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
@@ -133,6 +134,56 @@ export function App() {
   const [currentTab, setCurrentTab] = useState('clientes');
   const [userRole, setUserRole] = useState<AppRole>('professor');
 
+  // Gestão de sessão de autenticação (persiste no localStorage)
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    nome: string;
+    email: string;
+    role: 'professor' | 'aluno';
+  } | null>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_auth_session');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return null;
+  });
+
+  const handleLogin = (session: { id: string; nome: string; email: string; role: 'professor' | 'aluno' }) => {
+    setCurrentUser(session);
+    setUserRole(session.role);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_auth_session', JSON.stringify(session));
+    }
+    if (session.role === 'aluno') {
+      setIsMobileView(true);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState({}, '', '/app');
+      }
+    } else {
+      setIsMobileView(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState({}, '', '/');
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsMobileView(false);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('giano_auth_session');
+      localStorage.removeItem('giano_aluno_ativo_id');
+    }
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({}, '', '/');
+    }
+    toast.info('Sessão encerrada com sucesso.');
+  };
+
   // Gestão de alunos local com sincronização automática
   const [alunos, setAlunos] = useState<Aluno[]>(() => {
     if (typeof localStorage !== 'undefined') {
@@ -173,6 +224,18 @@ export function App() {
     setAlunos((prev) => prev.filter((a) => a.id !== id));
   };
 
+  // Se não houver usuário autenticado, exibe a tela de login
+  if (!currentUser) {
+    return (
+      <ThemeProvider>
+        <LanguageProvider>
+          <LoginPage onLogin={handleLogin} />
+          <Toaster position="top-center" richColors />
+        </LanguageProvider>
+      </ThemeProvider>
+    );
+  }
+
   // Se estiver na rota do aluno (/app)
   if (isMobileView) {
     return (
@@ -195,8 +258,10 @@ export function App() {
             </button>
 
             <AppAlunoPage
+              alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
               alunos={alunos}
               treinos={TREINOS_INICIAIS}
+              onLogout={handleLogout}
             />
             <Toaster position="top-center" richColors />
           </div>
@@ -215,8 +280,8 @@ export function App() {
             currentTab={currentTab}
             onTabChange={setCurrentTab}
             userRole={userRole}
-            userName="André Gianotti"
-            onLogout={() => toast.info('Sessão encerrada com segurança.')}
+            userName={currentUser.nome}
+            onLogout={handleLogout}
           />
 
           {/* Área Central de Conteúdo */}
