@@ -17,9 +17,11 @@ import {
   Trash2, 
   Sparkles,
   Layers,
-  ChevronDown
+  ChevronDown,
+  ExternalLink
 } from 'lucide-react';
 import type { Exercicio } from '@/lib/types';
+import { parseMedia } from '@/lib/media.utils';
 import { toast } from 'sonner';
 
 interface ExerciciosPageProps {
@@ -92,6 +94,9 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [exercicioEmEdicao, setExercicioEmEdicao] = useState<Exercicio | null>(null);
 
+  // Estado do Modal de Execução / Cinema de Vídeo
+  const [exercicioAssistindo, setExercicioAssistindo] = useState<Exercicio | null>(null);
+
   // Campos do formulário no Drawer
   const [formTitulo, setFormTitulo] = useState('');
   const [formEquipamento, setFormEquipamento] = useState('Chão');
@@ -155,9 +160,9 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
     setFormTipo('Funcional');
     setFormGrupo('Mobilidade');
     setFormOrientacoes('');
-    setFormVideoUrl('/videos/exemplo_execucao.mp4'); // Vídeo local padrão do Nexur
+    setFormVideoUrl('');
     setFormMidiaUrl('');
-    setVideoPreviewLocal('/videos/exemplo_execucao.mp4');
+    setVideoPreviewLocal(null);
     setDrawerAberto(true);
   };
 
@@ -199,7 +204,7 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
         tipo: formTipo,
         grupo: formGrupo,
         orientacoes: formOrientacoes.trim(),
-        video: formVideoUrl.trim() || '/videos/exemplo_execucao.mp4',
+        video: formVideoUrl.trim(),
         midia: formMidiaUrl.trim() || 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600&q=80',
         professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
         is_system: false,
@@ -474,44 +479,48 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
             </div>
           ) : (
             exerciciosFiltrados.map((ex) => {
+              const media = parseMedia(ex.video, ex.midia);
               const temVideo = Boolean(ex.video);
-              const videoSrc = ex.video || '/videos/exemplo_execucao.mp4';
 
               return (
                 <div
                   key={ex.id}
                   className="p-3.5 sm:p-4 flex items-center justify-between gap-4 hover:bg-neutral-50/70 dark:hover:bg-neutral-850/40 transition-colors group"
                 >
-                  {/* Lado Esquerdo: Miniatura Viva em Vídeo/GIF + Título e Tags */}
+                  {/* Lado Esquerdo: Miniatura com Play & Detalhes (Clique abre o Player de Execução) */}
                   <div 
-                    onClick={() => handleAbrirEdicao(ex)}
+                    onClick={() => setExercicioAssistindo(ex)}
                     className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
+                    title="Clique para assistir à demonstração e ver orientações"
                   >
-                    {/* Miniatura Viva (Vídeo em loop ou Imagem) */}
+                    {/* Miniatura inteligente (Capa YouTube / Imagem / GIF / Vídeo) */}
                     <div className="relative size-16 sm:size-20 rounded-xl overflow-hidden bg-neutral-950 shrink-0 border border-neutral-200 dark:border-neutral-800 shadow-sm flex items-center justify-center group-hover:border-amber-500/50 transition-colors">
-                      {temVideo ? (
+                      {media.thumbnailUrl ? (
+                        <img
+                          src={media.thumbnailUrl}
+                          alt={ex.titulo}
+                          className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : media.type === 'direct_video' ? (
                         <video
-                          src={videoSrc}
+                          src={media.embedUrl!}
                           autoPlay
                           loop
                           muted
                           playsInline
                           className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform duration-300"
                         />
-                      ) : ex.midia ? (
-                        <img
-                          src={ex.midia}
-                          alt={ex.titulo}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
                       ) : (
                         <Dumbbell className="size-6 text-neutral-500" />
                       )}
 
-                      {/* Tag de vídeo discreta */}
+                      {/* Selo / Botão de Play central com destaque */}
                       {temVideo && (
-                        <div className="absolute top-1 right-1 size-4 rounded bg-black/70 flex items-center justify-center text-white text-[8px]">
-                          <Play className="size-2 fill-white ml-0.5" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                          <div className="size-7 sm:size-8 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="size-3.5 fill-neutral-950 ml-0.5" />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -543,7 +552,7 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Lado Direito: Switch Amarelo Ativo / Inativo & Ação */}
+                  {/* Lado Direito: Switch Amarelo Ativo / Inativo & Ação de Editar */}
                   <div className="flex items-center gap-3 shrink-0">
                     <button
                       onClick={() => handleToggleAtivo(ex)}
@@ -562,7 +571,7 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                     <button
                       onClick={() => handleAbrirEdicao(ex)}
                       className="size-8 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
-                      title="Editar Exercício"
+                      title="Editar Exercício (Gaveta Lateral)"
                     >
                       <Edit3 className="size-3.5" />
                     </button>
@@ -576,27 +585,50 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
         /* Modo Grade */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {exerciciosFiltrados.map((ex) => {
-            const videoSrc = ex.video || '/videos/exemplo_execucao.mp4';
+            const media = parseMedia(ex.video, ex.midia);
+            const temVideo = Boolean(ex.video);
+
             return (
               <div
                 key={ex.id}
                 className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-sm flex flex-col justify-between hover:border-amber-500/40 transition-all group"
               >
-                {/* Miniatura de Vídeo Viva */}
+                {/* Miniatura com Botão de Assistir */}
                 <div 
-                  onClick={() => handleAbrirEdicao(ex)}
-                  className="relative aspect-video bg-neutral-950 overflow-hidden cursor-pointer"
+                  onClick={() => setExercicioAssistindo(ex)}
+                  className="relative aspect-video bg-neutral-950 overflow-hidden cursor-pointer flex items-center justify-center"
+                  title="Clique para assistir"
                 >
-                  <video
-                    src={videoSrc}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {media.thumbnailUrl ? (
+                    <img
+                      src={media.thumbnailUrl}
+                      alt={ex.titulo}
+                      className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : media.type === 'direct_video' ? (
+                    <video
+                      src={media.embedUrl!}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <Dumbbell className="size-10 text-neutral-600" />
+                  )}
+
+                  {temVideo && (
+                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 flex items-center justify-center transition-colors">
+                      <div className="size-10 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                        <Play className="size-4 fill-neutral-950 ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur text-[10px] font-black uppercase text-amber-400 border border-amber-400/30">
+                    <span className="px-2 py-0.5 rounded-full bg-black/75 backdrop-blur text-[10px] font-black uppercase text-amber-400 border border-amber-400/30">
                       {ex.equipamento}
                     </span>
                   </div>
@@ -604,7 +636,10 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
 
                 {/* Conteúdo */}
                 <div className="p-4 space-y-3">
-                  <div>
+                  <div 
+                    onClick={() => setExercicioAssistindo(ex)}
+                    className="cursor-pointer"
+                  >
                     <h3 className="font-bold text-sm text-neutral-900 dark:text-white line-clamp-1 group-hover:text-amber-500 transition-colors">
                       {ex.titulo}
                     </h3>
@@ -614,9 +649,14 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800 text-xs">
-                    <span className="text-[11px] font-bold text-neutral-400">
-                      {ex.is_system ? 'Banco GIANO' : 'Próprio'}
-                    </span>
+                    <button
+                      onClick={() => handleAbrirEdicao(ex)}
+                      className="text-xs font-bold text-neutral-400 hover:text-amber-500 flex items-center gap-1 transition-colors"
+                      title="Editar Exercício"
+                    >
+                      <Edit3 className="size-3" />
+                      <span>Editar</span>
+                    </button>
 
                     <button
                       onClick={() => handleToggleAtivo(ex)}
@@ -677,23 +717,127 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                     Demonstração Visual (Vídeo ou GIF)
                   </label>
 
-                  {/* Pré-visualização ao vivo */}
-                  {videoPreviewLocal && (
-                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-neutral-200 dark:border-neutral-800 shadow-inner mb-3">
-                      <video
-                        src={videoPreviewLocal}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-bold text-white flex items-center gap-1">
-                        <Play className="size-2.5 fill-white" />
-                        <span>Pré-visualização ativa</span>
+                  {/* Pré-visualização ao vivo com suporte a YouTube, Drive, Vimeo, MP4 e GIF */}
+                  {(() => {
+                    const info = parseMedia(videoPreviewLocal || formVideoUrl, formMidiaUrl);
+
+                    if (info.type === 'youtube') {
+                      return (
+                        <div className="space-y-1.5 mb-3">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-neutral-200 dark:border-neutral-800 shadow-inner">
+                            <iframe
+                              src={info.embedUrl!}
+                              title={formTitulo || 'Vídeo YouTube'}
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] px-1 text-emerald-500 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" /> Vídeo do YouTube vinculado e pronto
+                            </span>
+                            <span className="text-neutral-400 font-normal">Player ativo</span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (info.type === 'drive') {
+                      return (
+                        <div className="space-y-1.5 mb-3">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-neutral-200 dark:border-neutral-800 shadow-inner">
+                            <iframe
+                              src={info.embedUrl!}
+                              title={formTitulo || 'Google Drive'}
+                              className="w-full h-full border-0"
+                              allow="autoplay"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] px-1 text-emerald-500 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" /> Vídeo do Google Drive vinculado
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (info.type === 'vimeo') {
+                      return (
+                        <div className="space-y-1.5 mb-3">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-neutral-200 dark:border-neutral-800 shadow-inner">
+                            <iframe
+                              src={info.embedUrl!}
+                              title={formTitulo || 'Vimeo'}
+                              className="w-full h-full border-0"
+                              allow="autoplay; fullscreen"
+                              allowFullScreen
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] px-1 text-emerald-500 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" /> Vídeo do Vimeo vinculado
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (info.type === 'direct_video') {
+                      return (
+                        <div className="space-y-1.5 mb-3">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-black border border-neutral-200 dark:border-neutral-800 shadow-inner">
+                            <video
+                              src={info.embedUrl!}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              controls
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] px-1 text-emerald-500 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" /> Arquivo de vídeo próprio carregado
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (info.type === 'gif_image') {
+                      return (
+                        <div className="space-y-1.5 mb-3">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-neutral-950 border border-neutral-200 dark:border-neutral-800 shadow-inner flex items-center justify-center">
+                            <img
+                              src={info.embedUrl!}
+                              alt="Demonstração"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] px-1 text-emerald-500 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Check className="size-3" /> GIF / Imagem de demonstração
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="aspect-video rounded-2xl bg-neutral-50 dark:bg-neutral-850 border-2 border-dashed border-neutral-200 dark:border-neutral-800 flex flex-col items-center justify-center text-center p-4 mb-3">
+                        <VideoIcon className="size-8 text-neutral-400 mb-1.5" />
+                        <span className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                          Nenhum vídeo vinculado ainda
+                        </span>
+                        <span className="text-[10px] text-neutral-400 mt-0.5 max-w-xs">
+                          Cole o link do YouTube / Google Drive abaixo ou selecione um arquivo de vídeo/GIF próprio.
+                        </span>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Dropzone de Upload */}
                   <label className="relative border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-amber-500/60 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-neutral-50/50 dark:bg-neutral-850/50">
@@ -729,15 +873,16 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                         type="text"
                         value={formVideoUrl}
                         onChange={(e) => {
-                          setFormVideoUrl(e.target.value);
-                          setVideoPreviewLocal(e.target.value);
+                          const val = e.target.value;
+                          setFormVideoUrl(val);
+                          setVideoPreviewLocal(val);
                         }}
-                        placeholder="Link externo (youtube, vimeo, drive, etc)"
+                        placeholder="Ex: https://www.youtube.com/watch?v=eGo4IYIbE5g ou Drive"
                         className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs font-medium text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                       />
                     </div>
                     <span className="text-[10px] text-neutral-400 px-1">
-                      Você pode colar link do YouTube, Google Drive ou arquivo MP4 direto.
+                      Cole links do YouTube, Google Drive, Vimeo ou URLs diretas de MP4/GIF.
                     </span>
                   </div>
                 </div>
@@ -843,6 +988,178 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL DE EXECUÇÃO FOCADO (CINEMA / VÍDEO COMPLETO)       */}
+      {/* ======================================================== */}
+      {exercicioAssistindo && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div
+            onClick={() => setExercicioAssistindo(null)}
+            className="fixed inset-0"
+          />
+
+          <div className="relative w-full max-w-3xl rounded-3xl bg-neutral-900 border border-neutral-800 shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95 duration-200">
+            {/* Topo do Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-950/80">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
+                  <Play className="size-4 fill-amber-500" />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-black text-white truncate">
+                      {exercicioAssistindo.titulo}
+                    </h2>
+                    {exercicioAssistindo.is_system && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
+                        GIANO
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-neutral-400">
+                    {exercicioAssistindo.grupo} • {exercicioAssistindo.tipo || 'Exercício'} • Equipamento: <span className="text-amber-400 font-bold">{exercicioAssistindo.equipamento}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const ex = exercicioAssistindo;
+                    setExercicioAssistindo(null);
+                    handleAbrirEdicao(ex);
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-neutral-700 hover:border-amber-500/40 hover:bg-neutral-800 text-xs font-bold text-neutral-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Editar dados e link deste exercício"
+                >
+                  <Edit3 className="size-3.5 text-amber-500" />
+                  <span>Editar</span>
+                </button>
+                <button
+                  onClick={() => setExercicioAssistindo(null)}
+                  className="size-9 rounded-xl hover:bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  title="Fechar"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Player de Mídia Responsivo 16:9 */}
+            <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+              {(() => {
+                const info = parseMedia(exercicioAssistindo.video, exercicioAssistindo.midia);
+
+                if (info.type === 'youtube') {
+                  return (
+                    <iframe
+                      src={info.embedUrl!}
+                      title={exercicioAssistindo.titulo}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  );
+                }
+
+                if (info.type === 'drive') {
+                  return (
+                    <iframe
+                      src={info.embedUrl!}
+                      title={exercicioAssistindo.titulo}
+                      className="w-full h-full border-0"
+                      allow="autoplay"
+                    />
+                  );
+                }
+
+                if (info.type === 'vimeo') {
+                  return (
+                    <iframe
+                      src={info.embedUrl!}
+                      title={exercicioAssistindo.titulo}
+                      className="w-full h-full border-0"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                    />
+                  );
+                }
+
+                if (info.type === 'direct_video') {
+                  return (
+                    <video
+                      src={info.embedUrl!}
+                      autoPlay
+                      loop
+                      muted={false}
+                      controls
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  );
+                }
+
+                if (info.type === 'gif_image') {
+                  return (
+                    <img
+                      src={info.embedUrl!}
+                      alt={exercicioAssistindo.titulo}
+                      className="w-full h-full object-contain"
+                    />
+                  );
+                }
+
+                return (
+                  <div className="text-center p-8 space-y-3">
+                    <VideoIcon className="size-12 text-neutral-600 mx-auto" />
+                    <p className="text-sm font-bold text-neutral-400">Nenhum vídeo cadastrado para este exercício.</p>
+                    <button
+                      onClick={() => {
+                        const ex = exercicioAssistindo;
+                        setExercicioAssistindo(null);
+                        handleAbrirEdicao(ex);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-amber-500 text-neutral-950 text-xs font-bold hover:bg-amber-400 transition-colors cursor-pointer"
+                    >
+                      Adicionar link do YouTube ou GIF agora
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Detalhes Técnicos & Orientações Posturais */}
+            <div className="p-6 space-y-4 bg-neutral-900 border-t border-neutral-800">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">
+                  Orientações Técnicas & Posturais
+                </span>
+                <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-line">
+                  {exercicioAssistindo.orientacoes || 'Nenhuma orientação cadastrada para este exercício.'}
+                </p>
+              </div>
+
+              {exercicioAssistindo.video && (
+                <div className="pt-3 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400 flex-wrap gap-2">
+                  <span className="truncate max-w-sm sm:max-w-md font-mono text-[11px] text-neutral-500">
+                    {exercicioAssistindo.video}
+                  </span>
+                  <a
+                    href={exercicioAssistindo.video}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold shrink-0"
+                  >
+                    <span>Abrir link original</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

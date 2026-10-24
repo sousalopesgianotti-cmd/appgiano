@@ -334,7 +334,7 @@ function AppContent() {
   // Gestão da biblioteca de exercícios (persiste no localStorage)
   const [exercicios, setExercicios] = useState<Exercicio[]>(() => {
     if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem('giano_exercicios_db_v2');
+      const saved = localStorage.getItem('giano_exercicios_db_v4');
       if (saved) {
         try {
           return JSON.parse(saved);
@@ -346,7 +346,7 @@ function AppContent() {
 
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('giano_exercicios_db_v2', JSON.stringify(exercicios));
+      localStorage.setItem('giano_exercicios_db_v4', JSON.stringify(exercicios));
     }
   }, [exercicios]);
 
