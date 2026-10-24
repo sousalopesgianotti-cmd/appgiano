@@ -10,8 +10,9 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { ConfiguracoesPage } from '@/pages/professor/ConfiguracoesPage';
 import { ProfessoresPage } from '@/pages/admin/ProfessoresPage';
 import { PlanosPage } from '@/pages/admin/PlanosPage';
+import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
 import { DEFAULT_EXERCICIOS } from '@/lib/exercicios.data';
-import type { Aluno, Treino, AppRole, Professor } from '@/lib/types';
+import type { Aluno, Treino, AppRole, Professor, Exercicio } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
 
 // Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
@@ -330,6 +331,43 @@ function AppContent() {
     setAlunos((prev) => prev.filter((a) => a.id !== id));
   };
 
+  // Gestão da biblioteca de exercícios (persiste no localStorage)
+  const [exercicios, setExercicios] = useState<Exercicio[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_exercicios_db_v2');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return DEFAULT_EXERCICIOS;
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_exercicios_db_v2', JSON.stringify(exercicios));
+    }
+  }, [exercicios]);
+
+  const handleAddExercicio = async (novo: Omit<Exercicio, 'id'>) => {
+    const exercicioCriado: Exercicio = {
+      ...novo,
+      id: crypto.randomUUID(),
+    };
+    setExercicios((prev) => [exercicioCriado, ...prev]);
+  };
+
+  const handleUpdateExercicio = async (id: string, patch: Partial<Exercicio>) => {
+    setExercicios((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...patch } : e))
+    );
+  };
+
+  const handleDeleteExercicio = async (id: string) => {
+    setExercicios((prev) => prev.filter((e) => e.id !== id));
+  };
+
   // Se não houver usuário autenticado, exibe a tela de login
   if (!currentUser) {
     return (
@@ -434,36 +472,12 @@ function AppContent() {
           )}
 
           {currentTab === 'exercicios' && (
-            <div className="p-8 max-w-7xl mx-auto space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight">Biblioteca de Exercícios</h1>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Catálogo completo com vídeos de execução e orientações posturais ({DEFAULT_EXERCICIOS.length} cadastrados)
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {DEFAULT_EXERCICIOS.map((ex) => (
-                  <div
-                    key={ex.id}
-                    className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 shadow-sm space-y-3 flex flex-col justify-between"
-                  >
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">
-                        {ex.grupo}
-                      </span>
-                      <h3 className="font-bold text-sm leading-snug">{ex.titulo}</h3>
-                      <p className="text-xs text-neutral-500 line-clamp-2">{ex.orientacoes}</p>
-                    </div>
-                    <span className="text-[11px] font-semibold text-neutral-400">
-                      Equipamento: {ex.equipamento}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ExerciciosPage
+              exercicios={exercicios}
+              onAddExercicio={handleAddExercicio}
+              onUpdateExercicio={handleUpdateExercicio}
+              onDeleteExercicio={handleDeleteExercicio}
+            />
           )}
 
           {currentTab === 'configuracoes' && (
