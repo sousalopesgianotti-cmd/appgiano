@@ -11,6 +11,7 @@ import { ConfiguracoesPage } from '@/pages/professor/ConfiguracoesPage';
 import { ProfessoresPage } from '@/pages/admin/ProfessoresPage';
 import { PlanosPage } from '@/pages/admin/PlanosPage';
 import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
+import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
@@ -87,17 +88,17 @@ const ALUNOS_INICIAIS: Aluno[] = [
 
 const TREINOS_INICIAIS: Treino[] = [
   {
-    id: "tr_supino_1",
+    id: "tr_peito_triceps_1",
     professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
     nome: "Treino A — Peito & Tríceps",
-    descricao: "Foco em força e hipertrofia",
+    descricao: "Foco em força, hipertrofia e estabilização de escápulas",
     exercicios: [
       {
         exercicio_id: "ex_supino_reto",
         titulo: "Supino Reto com Barra",
         series: 4,
         repeticoes: "12 - 10 - 8 - 8",
-        carga: "20kg",
+        carga: "20kg de cada lado",
         descanso_segundos: 90,
         observacoes: "Rest-Pause na última série (8 reps + 15s desc. + máx)",
         midia: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
@@ -121,6 +122,82 @@ const TREINOS_INICIAIS: Treino[] = [
         descanso_segundos: 45,
         observacoes: "Abrir a corda no ponto de contração máxima.",
         midia: "https://images.unsplash.com/photo-1530822847156-5df684ec5ee1?w=800&q=80",
+      },
+    ],
+  },
+  {
+    id: "tr_costas_biceps_2",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    nome: "Treino B — Costas & Bíceps",
+    descricao: "Foco em densidade dorsal e pico de contração de bíceps",
+    exercicios: [
+      {
+        exercicio_id: "ex_puxada_alta",
+        titulo: "Puxada Frontal Aberta",
+        series: 4,
+        repeticoes: "10-12",
+        carga: "45kg",
+        descanso_segundos: 60,
+        observacoes: "Puxar direcionando os cotovelos para a cintura.",
+        midia: "https://images.unsplash.com/photo-1584466977773-e625c37cdd50?w=800&q=80",
+      },
+      {
+        exercicio_id: "ex_remada_curvada",
+        titulo: "Remada Curvada com Barra",
+        series: 4,
+        repeticoes: "8-10",
+        carga: "30kg",
+        descanso_segundos: 75,
+        observacoes: "Tronco firme a 45 graus, sem balançar a lombar.",
+        midia: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+      },
+      {
+        exercicio_id: "ex_rosca_direta",
+        titulo: "Rosca Direta com Barra W",
+        series: 3,
+        repeticoes: "10-12",
+        carga: "12kg cada lado",
+        descanso_segundos: 60,
+        observacoes: "Manter os cotovelos colados ao tronco.",
+        midia: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+      },
+    ],
+  },
+  {
+    id: "tr_pernas_completo_3",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    nome: "Treino C — Pernas Completo",
+    descricao: "Quadríceps, posteriores, glúteos e panturrilhas",
+    exercicios: [
+      {
+        exercicio_id: "ex_agachamento_livre",
+        titulo: "Agachamento Livre com Barra",
+        series: 4,
+        repeticoes: "10-8-8-6",
+        carga: "40kg cada lado",
+        descanso_segundos: 90,
+        observacoes: "Descer até passar a linha de 90 graus com controle.",
+        midia: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+      },
+      {
+        exercicio_id: "ex_leg_press_45",
+        titulo: "Leg Press 45º",
+        series: 4,
+        repeticoes: "12-15",
+        carga: "160kg",
+        descanso_segundos: 60,
+        observacoes: "Pés na largura dos ombros, não travar joelhos no topo.",
+        midia: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+      },
+      {
+        exercicio_id: "ex_cadeira_extensora",
+        titulo: "Cadeira Extensora",
+        series: 3,
+        repeticoes: "12-15",
+        carga: "45kg",
+        descanso_segundos: 45,
+        observacoes: "Pausa de 2 segundos no pico de contração máxima.",
+        midia: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
       },
     ],
   },
@@ -416,6 +493,54 @@ function AppContent() {
     setExercicios((prev) => prev.filter((e) => e.id !== id));
   };
 
+  // Gestão da biblioteca de Treinos (persiste no localStorage)
+  const [treinos, setTreinos] = useState<Treino[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_treinos_db_v1');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return TREINOS_INICIAIS;
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_treinos_db_v1', JSON.stringify(treinos));
+    }
+  }, [treinos]);
+
+  const handleAddTreino = async (novo: Omit<Treino, 'id'>) => {
+    const treinoCriado: Treino = {
+      ...novo,
+      id: `tr_${crypto.randomUUID().slice(0, 8)}`,
+      created_at: new Date().toISOString(),
+    };
+    setTreinos((prev) => [treinoCriado, ...prev]);
+  };
+
+  const handleUpdateTreino = async (id: string, patch: Partial<Treino>) => {
+    setTreinos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...patch } : t))
+    );
+  };
+
+  const handleDeleteTreino = async (id: string) => {
+    setTreinos((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleDuplicateTreino = async (treino: Treino) => {
+    const duplicado: Treino = {
+      ...treino,
+      id: `tr_${crypto.randomUUID().slice(0, 8)}`,
+      nome: `${treino.nome} (Cópia)`,
+      created_at: new Date().toISOString(),
+    };
+    setTreinos((prev) => [duplicado, ...prev]);
+  };
+
   // Se não houver usuário autenticado, exibe a tela de login
   if (!currentUser) {
     return (
@@ -448,7 +573,7 @@ function AppContent() {
         <AppAlunoPage
           alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
           alunos={alunos}
-          treinos={TREINOS_INICIAIS}
+          treinos={treinos}
           onLogout={handleLogout}
         />
         <Toaster position="top-center" richColors />
@@ -532,11 +657,23 @@ function AppContent() {
             />
           )}
 
+          {currentTab === 'treinos' && (
+            <TreinosPage
+              treinos={treinos}
+              exercicios={exercicios}
+              pastas={pastas}
+              onAddTreino={handleAddTreino}
+              onUpdateTreino={handleUpdateTreino}
+              onDeleteTreino={handleDeleteTreino}
+              onDuplicateTreino={handleDuplicateTreino}
+            />
+          )}
+
           {currentTab === 'configuracoes' && (
             <ConfiguracoesPage />
           )}
 
-          {currentTab !== 'professores' && currentTab !== 'planos' && currentTab !== 'clientes' && currentTab !== 'exercicios' && currentTab !== 'configuracoes' && (
+          {currentTab !== 'professores' && currentTab !== 'planos' && currentTab !== 'clientes' && currentTab !== 'exercicios' && currentTab !== 'treinos' && currentTab !== 'configuracoes' && (
             <div className="p-12 text-center text-neutral-400 space-y-2">
               <h2 className="text-xl font-bold text-neutral-700 dark:text-neutral-300 capitalize">
                 {currentTab}

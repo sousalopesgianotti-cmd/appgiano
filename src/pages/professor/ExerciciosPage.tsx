@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import type { Exercicio, PastaExercicio, ItemMidiaExercicio } from '@/lib/types';
 import { parseMedia } from '@/lib/media.utils';
+import { ViewModeToggle } from '@/components/common/ViewModeToggle';
 import { toast } from 'sonner';
 
 interface ExerciciosPageProps {
@@ -479,32 +480,8 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
             )}
           </div>
 
-          {pastaAtiva && (
-            <div className="flex items-center p-1 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700/60">
-              <button
-                onClick={() => setModoVisualizacao('grade')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  modoVisualizacao === 'grade'
-                    ? 'bg-white dark:bg-neutral-900 text-amber-500 shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                }`}
-                title="Visualização em Grade"
-              >
-                <LayoutGrid className="size-3.5" />
-              </button>
-              <button
-                onClick={() => setModoVisualizacao('lista')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  modoVisualizacao === 'lista'
-                    ? 'bg-white dark:bg-neutral-900 text-amber-500 shadow-xs'
-                    : 'text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                }`}
-                title="Visualização em Lista"
-              >
-                <List className="size-3.5" />
-              </button>
-            </div>
-          )}
+          {/* Seletor Modo Card / Lista estilo Nexur */}
+          <ViewModeToggle mode={modoVisualizacao} onChange={setModoVisualizacao} />
         </div>
       </div>
 
@@ -512,30 +489,133 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
       {/* CONTEÚDO PRINCIPAL: PASTAS OU LISTA DA PASTA ATIVA       */}
       {/* ======================================================== */}
       {!pastaAtiva ? (
-        /* VISÃO DE TODAS AS PASTAS (DIRETÓRIO RAIZ) */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {pastasFiltradas.map((pasta) => {
-            const count = contagemPorPasta[pasta.id] || 0;
+        modoVisualizacao === 'grade' ? (
+          /* VISÃO DE TODAS AS PASTAS EM GRADE (MODO CARD) */
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {pastasFiltradas.map((pasta) => {
+              const count = contagemPorPasta[pasta.id] || 0;
 
-            return (
-              <div
-                key={pasta.id}
-                onClick={() => setPastaAtivaId(pasta.id)}
-                className="group p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-amber-500/50 bg-white dark:bg-neutral-900 hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="size-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    {renderFolderIcon(pasta.icone, "size-5")}
+              return (
+                <div
+                  key={pasta.id}
+                  onClick={() => setPastaAtivaId(pasta.id)}
+                  className="group p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-amber-500/50 bg-white dark:bg-neutral-900 hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="size-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      {renderFolderIcon(pasta.icone, "size-5")}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-[11px] font-bold text-neutral-600 dark:text-neutral-300 group-hover:bg-amber-500 group-hover:text-neutral-950 transition-colors">
+                        {count} {count === 1 ? 'exercício' : 'exercícios'}
+                      </span>
+                      {!pasta.is_default && (
+                        <button
+                          onClick={(e) => handleConfirmarDeletarPasta(pasta, e)}
+                          className="p-1 rounded-md text-neutral-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                          title="Excluir pasta"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-[11px] font-bold text-neutral-600 dark:text-neutral-300 group-hover:bg-amber-500 group-hover:text-neutral-950 transition-colors">
+                  <div className="space-y-1">
+                    <h3 className="font-black text-base text-neutral-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                      {pasta.nome}
+                    </h3>
+                    {pasta.descricao && (
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed">
+                        {pasta.descricao}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between text-xs font-bold text-neutral-400 group-hover:text-amber-500 transition-colors">
+                    <span>Abrir pasta</span>
+                    <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Card Rápido para Criar Nova Pasta Muscular */}
+            <div
+              onClick={() => setModalNovaPastaAberto(true)}
+              className="group p-5 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-800 hover:border-amber-500/60 bg-neutral-50/50 dark:bg-neutral-900/40 hover:bg-neutral-100/50 dark:hover:bg-neutral-850/50 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-3 min-h-[160px]"
+              title="Criar pasta de grupo muscular personalizada"
+            >
+              <div className="size-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FolderPlus className="size-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 group-hover:text-amber-500 transition-colors">
+                  + Nova Pasta
+                </h3>
+                <p className="text-[11px] text-neutral-400">
+                  Personalizar grupo muscular
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* VISÃO DE TODAS AS PASTAS EM MODO LISTA */
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden shadow-xs">
+            {pastasFiltradas.map((pasta) => {
+              const count = contagemPorPasta[pasta.id] || 0;
+
+              return (
+                <div
+                  key={pasta.id}
+                  onClick={() => setPastaAtivaId(pasta.id)}
+                  className="p-4 sm:p-4.5 flex items-center justify-between gap-4 hover:bg-neutral-50/70 dark:hover:bg-neutral-850/40 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className="size-11 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      {renderFolderIcon(pasta.icone, "size-5")}
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-white truncate group-hover:text-amber-500 transition-colors">
+                          {pasta.nome}
+                        </h3>
+                        {pasta.is_default && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+                            Padrão
+                          </span>
+                        )}
+                      </div>
+                      {pasta.descricao && (
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                          {pasta.descricao}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-xs font-bold text-neutral-600 dark:text-neutral-300 group-hover:bg-amber-500 group-hover:text-neutral-950 transition-colors">
                       {count} {count === 1 ? 'exercício' : 'exercícios'}
                     </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPastaAtivaId(pasta.id);
+                      }}
+                      className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700/80 hover:border-amber-500 hover:text-amber-500 text-xs font-bold text-neutral-600 dark:text-neutral-300 flex items-center gap-1 transition-all"
+                    >
+                      <span>Abrir</span>
+                      <ChevronRight className="size-3.5" />
+                    </button>
+
                     {!pasta.is_default && (
                       <button
                         onClick={(e) => handleConfirmarDeletarPasta(pasta, e)}
-                        className="p-1 rounded-md text-neutral-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                         title="Excluir pasta"
                       >
                         <Trash2 className="size-3.5" />
@@ -543,45 +623,21 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                     )}
                   </div>
                 </div>
+              );
+            })}
 
-                <div className="space-y-1">
-                  <h3 className="font-black text-base text-neutral-900 dark:text-white group-hover:text-amber-500 transition-colors">
-                    {pasta.nome}
-                  </h3>
-                  {pasta.descricao && (
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-relaxed">
-                      {pasta.descricao}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between text-xs font-bold text-neutral-400 group-hover:text-amber-500 transition-colors">
-                  <span>Abrir pasta</span>
-                  <ChevronRight className="size-4 group-hover:translate-x-1 transition-transform" />
-                </div>
+            {/* Linha para adicionar nova pasta no modo lista */}
+            <div
+              onClick={() => setModalNovaPastaAberto(true)}
+              className="p-3.5 sm:p-4 flex items-center gap-3 hover:bg-amber-500/5 transition-colors cursor-pointer text-amber-500 font-bold text-xs sm:text-sm border-t border-dashed border-neutral-200 dark:border-neutral-800"
+            >
+              <div className="size-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <FolderPlus className="size-4" />
               </div>
-            );
-          })}
-
-          {/* Card Rápido para Criar Nova Pasta Muscular */}
-          <div
-            onClick={() => setModalNovaPastaAberto(true)}
-            className="group p-5 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-800 hover:border-amber-500/60 bg-neutral-50/50 dark:bg-neutral-900/40 hover:bg-neutral-100/50 dark:hover:bg-neutral-850/50 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-3 min-h-[160px]"
-            title="Criar pasta de grupo muscular personalizada"
-          >
-            <div className="size-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <FolderPlus className="size-5" />
-            </div>
-            <div className="space-y-0.5">
-              <h3 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 group-hover:text-amber-500 transition-colors">
-                + Nova Pasta
-              </h3>
-              <p className="text-[11px] text-neutral-400">
-                Personalizar grupo muscular
-              </p>
+              <span>+ Criar nova pasta de grupo muscular</span>
             </div>
           </div>
-        </div>
+        )
       ) : (
         /* VISÃO INTERNA DA PASTA SELECIONADA */
         <div>
