@@ -145,27 +145,37 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
     return map;
   }, [pastas, exercicios]);
 
-  // Pastas filtradas pela busca
+  // Pastas filtradas pela busca e organizadas em ordem alfabética (A a Z)
   const pastasFiltradas = useMemo(() => {
-    if (!busca.trim()) return pastas;
-    const termo = busca.toLowerCase();
-    return pastas.filter((p) => 
-      p.nome.toLowerCase().includes(termo) || 
-      p.descricao?.toLowerCase().includes(termo)
-    );
+    let lista = [...pastas];
+    if (busca.trim()) {
+      const termo = busca.toLowerCase();
+      lista = lista.filter((p) => 
+        p.nome.toLowerCase().includes(termo) || 
+        p.descricao?.toLowerCase().includes(termo)
+      );
+    }
+    return lista.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
   }, [pastas, busca]);
 
-  // Exercícios da pasta ativa filtrados pela busca
+  // Lista de pastas sempre ordenada alfabeticamente para selects
+  const pastasOrdenadas = useMemo(() => {
+    return [...pastas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+  }, [pastas]);
+
+  // Exercícios da pasta ativa filtrados pela busca e organizados em ordem alfabética (A a Z)
   const exerciciosDaPasta = useMemo(() => {
     if (!pastaAtivaId) return [];
-    const lista = exercicios.filter((ex) => ex.pasta_id === pastaAtivaId);
-    if (!busca.trim()) return lista;
-    const termo = busca.toLowerCase();
-    return lista.filter((ex) =>
-      ex.titulo.toLowerCase().includes(termo) ||
-      ex.equipamento.toLowerCase().includes(termo) ||
-      ex.orientacoes?.toLowerCase().includes(termo)
-    );
+    let lista = exercicios.filter((ex) => ex.pasta_id === pastaAtivaId);
+    if (busca.trim()) {
+      const termo = busca.toLowerCase();
+      lista = lista.filter((ex) =>
+        ex.titulo.toLowerCase().includes(termo) ||
+        ex.equipamento.toLowerCase().includes(termo) ||
+        ex.orientacoes?.toLowerCase().includes(termo)
+      );
+    }
+    return lista.sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR', { sensitivity: 'base' }));
   }, [exercicios, pastaAtivaId, busca]);
 
   // Abertura do Drawer para Criar Exercício
@@ -551,6 +561,25 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
               </div>
             );
           })}
+
+          {/* Card Rápido para Criar Nova Pasta Muscular */}
+          <div
+            onClick={() => setModalNovaPastaAberto(true)}
+            className="group p-5 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-800 hover:border-amber-500/60 bg-neutral-50/50 dark:bg-neutral-900/40 hover:bg-neutral-100/50 dark:hover:bg-neutral-850/50 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-3 min-h-[160px]"
+            title="Criar pasta de grupo muscular personalizada"
+          >
+            <div className="size-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FolderPlus className="size-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="font-bold text-sm text-neutral-800 dark:text-neutral-200 group-hover:text-amber-500 transition-colors">
+                + Nova Pasta
+              </h3>
+              <p className="text-[11px] text-neutral-400">
+                Personalizar grupo muscular
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         /* VISÃO INTERNA DA PASTA SELECIONADA */
@@ -898,21 +927,40 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                   />
                 </div>
 
-                {/* 2. Seleção de Pasta Muscular */}
+                {/* 2. Seleção de Pasta Muscular (Ordem Alfabética + Atalho de Criação) */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Pasta Muscular *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                      Pasta Muscular *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setModalNovaPastaAberto(true)}
+                      className="text-[11px] font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Plus className="size-3" />
+                      <span>Nova pasta</span>
+                    </button>
+                  </div>
                   <select
                     value={formPastaId}
-                    onChange={(e) => setFormPastaId(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__NOVA_PASTA__') {
+                        setModalNovaPastaAberto(true);
+                      } else {
+                        setFormPastaId(e.target.value);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 text-xs sm:text-sm font-bold text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                   >
-                    {pastas.map((pasta) => (
+                    {pastasOrdenadas.map((pasta) => (
                       <option key={pasta.id} value={pasta.id}>
                         {pasta.nome}
                       </option>
                     ))}
+                    <option value="__NOVA_PASTA__" className="text-amber-500 font-bold">
+                      + Criar Nova Pasta Muscular...
+                    </option>
                   </select>
                 </div>
 
