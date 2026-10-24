@@ -27,7 +27,8 @@ import {
   Shield,
   Flame,
   ChevronRight,
-  Paperclip
+  Paperclip,
+  Image as ImageIcon
 } from 'lucide-react';
 import type { Exercicio, PastaExercicio, ItemMidiaExercicio } from '@/lib/types';
 import { parseMedia } from '@/lib/media.utils';
@@ -610,22 +611,29 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
             /* Modo Grade de Exercícios */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {exerciciosDaPasta.map((ex) => {
-                const mediaInfo = parseMedia(ex.video, ex.midia);
+                const primeiraMidia = ex.midias?.[0];
+                const mediaInfo = parseMedia(
+                  ex.video, 
+                  ex.midia, 
+                  primeiraMidia?.arquivo_tipo, 
+                  primeiraMidia?.arquivo_nome
+                );
                 const qtdMidias = ex.midias?.length || (ex.video || ex.midia ? 1 : 0);
+                const isVideo = mediaInfo.isVideo;
 
                 return (
                   <div
                     key={ex.id}
                     className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 overflow-hidden shadow-xs hover:border-amber-500/40 transition-all flex flex-col justify-between group"
                   >
-                    {/* Miniatura com clique para assistir */}
+                    {/* Miniatura com clique para ampliar ou assistir */}
                     <div
                       onClick={() => {
                         setExercicioAssistindo(ex);
                         setAbaMidiaAssistindo(0);
                       }}
                       className="relative aspect-video bg-neutral-950 overflow-hidden cursor-pointer flex items-center justify-center"
-                      title="Clique para assistir à demonstração"
+                      title={isVideo ? "Clique para assistir ao vídeo" : "Clique para ampliar a foto"}
                     >
                       {mediaInfo.thumbnailUrl ? (
                         <img
@@ -646,12 +654,14 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                         <Dumbbell className="size-10 text-neutral-600" />
                       )}
 
-                      {/* Selo Play */}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 flex items-center justify-center transition-colors">
-                        <div className="size-10 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                          <Play className="size-4 fill-neutral-950 ml-0.5" />
+                      {/* Selo Play: APENAS se for vídeo. Se for foto, o card permanece 100% limpo */}
+                      {isVideo && (
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                          <div className="size-10 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                            <Play className="size-4 fill-neutral-950 ml-0.5" />
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Badge Equipamento */}
                       <div className="absolute top-2 left-2 flex items-center gap-1">
@@ -717,7 +727,14 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
             /* Modo Lista de Exercícios */
             <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden shadow-xs">
               {exerciciosDaPasta.map((ex) => {
-                const mediaInfo = parseMedia(ex.video, ex.midia);
+                const primeiraMidia = ex.midias?.[0];
+                const mediaInfo = parseMedia(
+                  ex.video, 
+                  ex.midia, 
+                  primeiraMidia?.arquivo_tipo, 
+                  primeiraMidia?.arquivo_nome
+                );
+                const isVideo = mediaInfo.isVideo;
 
                 return (
                   <div
@@ -752,11 +769,14 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                           <Dumbbell className="size-6 text-neutral-500" />
                         )}
 
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 flex items-center justify-center transition-colors">
-                          <div className="size-7 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                            <Play className="size-3.5 fill-neutral-950 ml-0.5" />
+                        {/* Selo Play apenas para vídeos */}
+                        {isVideo && (
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 flex items-center justify-center transition-colors">
+                            <div className="size-7 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <Play className="size-3.5 fill-neutral-950 ml-0.5" />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Informações */}
@@ -1015,7 +1035,12 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                   </div>
 
                   {formMidias.map((midia, index) => {
-                    const parsed = parseMedia(midia.link_externo, midia.arquivo_url);
+                    const parsed = parseMedia(
+                      midia.link_externo, 
+                      midia.arquivo_url, 
+                      midia.arquivo_tipo, 
+                      midia.arquivo_nome
+                    );
 
                     return (
                       <div
@@ -1077,11 +1102,11 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                                 className="w-full h-full object-cover"
                               />
                             )}
-                            {parsed.type === 'gif_image' && (
+                            {(parsed.type === 'image' || parsed.type === 'gif') && (
                               <img
                                 src={parsed.embedUrl}
                                 alt={`Mídia ${index + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain bg-neutral-950"
                               />
                             )}
                           </div>
@@ -1197,7 +1222,16 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-950/80">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
-                  <Play className="size-4 fill-amber-500" />
+                  {(() => {
+                    const midiaAtiva = exercicioAssistindo.midias?.[abaMidiaAssistindo];
+                    const info = parseMedia(
+                      midiaAtiva?.link_externo || exercicioAssistindo.video,
+                      midiaAtiva?.arquivo_url || exercicioAssistindo.midia,
+                      midiaAtiva?.arquivo_tipo,
+                      midiaAtiva?.arquivo_nome
+                    );
+                    return info.isVideo ? <Play className="size-4 fill-amber-500" /> : <ImageIcon className="size-4" />;
+                  })()}
                 </span>
                 <div className="min-w-0">
                   <h2 className="text-base sm:text-lg font-black text-white truncate">
@@ -1250,13 +1284,15 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
               </div>
             )}
 
-            {/* Player de Mídia Ativa */}
+            {/* Player / Visualizador de Mídia Ativa */}
             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
               {(() => {
                 const midiaAtiva = exercicioAssistindo.midias?.[abaMidiaAssistindo];
                 const info = parseMedia(
                   midiaAtiva?.link_externo || exercicioAssistindo.video,
-                  midiaAtiva?.arquivo_url || exercicioAssistindo.midia
+                  midiaAtiva?.arquivo_url || exercicioAssistindo.midia,
+                  midiaAtiva?.arquivo_tipo,
+                  midiaAtiva?.arquivo_nome
                 );
 
                 if (info.type === 'youtube') {
@@ -1308,13 +1344,15 @@ export const ExerciciosPage: React.FC<ExerciciosPageProps> = ({
                   );
                 }
 
-                if (info.type === 'gif_image') {
+                if (info.type === 'image' || info.type === 'gif') {
                   return (
-                    <img
-                      src={info.embedUrl!}
-                      alt={exercicioAssistindo.titulo}
-                      className="w-full h-full object-contain"
-                    />
+                    <div className="relative w-full h-full flex items-center justify-center p-3 bg-neutral-950">
+                      <img
+                        src={info.embedUrl!}
+                        alt={exercicioAssistindo.titulo}
+                        className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                      />
+                    </div>
                   );
                 }
 
