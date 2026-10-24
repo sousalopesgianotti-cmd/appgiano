@@ -44,9 +44,27 @@ export type Aluno = {
   created_at?: string;
 };
 
+export type ItemMidiaExercicio = {
+  id: string;
+  arquivo_nome?: string;
+  arquivo_url?: string;
+  arquivo_tipo?: 'video' | 'imagem' | 'documento' | 'outro';
+  link_externo?: string; // youtube, vimeo, drive, etc.
+};
+
+export type PastaExercicio = {
+  id: string;
+  nome: string;
+  descricao?: string;
+  cor?: string;
+  icone?: string;
+  is_default?: boolean;
+};
+
 export type Exercicio = {
   id: string;
   professor_id: string;
+  pasta_id?: string;
   titulo: string;
   equipamento: string;
   tipo?: string;
@@ -55,6 +73,7 @@ export type Exercicio = {
   video?: string;
   video_url?: string;
   midia?: string;
+  midias?: ItemMidiaExercicio[];
   orientacoes: string;
   is_system?: boolean;
   publico?: boolean;

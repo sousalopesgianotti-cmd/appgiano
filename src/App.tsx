@@ -11,8 +11,8 @@ import { ConfiguracoesPage } from '@/pages/professor/ConfiguracoesPage';
 import { ProfessoresPage } from '@/pages/admin/ProfessoresPage';
 import { PlanosPage } from '@/pages/admin/PlanosPage';
 import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
-import { DEFAULT_EXERCICIOS } from '@/lib/exercicios.data';
-import type { Aluno, Treino, AppRole, Professor, Exercicio } from '@/lib/types';
+import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
+import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio } from '@/lib/types';
 import { Smartphone, Monitor } from 'lucide-react';
 
 // Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
@@ -331,22 +331,60 @@ function AppContent() {
     setAlunos((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // Gestão da biblioteca de exercícios (persiste no localStorage)
-  const [exercicios, setExercicios] = useState<Exercicio[]>(() => {
+  // Gestão das Pastas Musculares
+  const [pastas, setPastas] = useState<PastaExercicio[]>(() => {
     if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem('giano_exercicios_db_v4');
+      const saved = localStorage.getItem('giano_pastas_v1');
       if (saved) {
         try {
           return JSON.parse(saved);
         } catch {}
       }
     }
-    return DEFAULT_EXERCICIOS;
+    return PASTAS_PADRAO;
   });
 
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('giano_exercicios_db_v4', JSON.stringify(exercicios));
+      localStorage.setItem('giano_pastas_v1', JSON.stringify(pastas));
+    }
+  }, [pastas]);
+
+  const handleAddPasta = async (nova: Omit<PastaExercicio, 'id'>) => {
+    const pastaCriada: PastaExercicio = {
+      ...nova,
+      id: `pasta_${crypto.randomUUID().slice(0, 8)}`,
+    };
+    setPastas((prev) => [...prev, pastaCriada]);
+  };
+
+  const handleUpdatePasta = async (id: string, patch: Partial<PastaExercicio>) => {
+    setPastas((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
+    );
+  };
+
+  const handleDeletePasta = async (id: string) => {
+    setPastas((prev) => prev.filter((p) => p.id !== id));
+    setExercicios((prev) => prev.filter((e) => e.pasta_id !== id));
+  };
+
+  // Gestão da biblioteca de exercícios (persiste no localStorage - começa limpa)
+  const [exercicios, setExercicios] = useState<Exercicio[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_exercicios_v6');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return DEFAULT_EXERCICIOS; // array vazio []
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_exercicios_v6', JSON.stringify(exercicios));
     }
   }, [exercicios]);
 
@@ -474,9 +512,13 @@ function AppContent() {
           {currentTab === 'exercicios' && (
             <ExerciciosPage
               exercicios={exercicios}
+              pastas={pastas}
               onAddExercicio={handleAddExercicio}
               onUpdateExercicio={handleUpdateExercicio}
               onDeleteExercicio={handleDeleteExercicio}
+              onAddPasta={handleAddPasta}
+              onUpdatePasta={handleUpdatePasta}
+              onDeletePasta={handleDeletePasta}
             />
           )}
 
