@@ -1,8 +1,7 @@
 import type { Exercicio, PastaExercicio } from "./types";
 
 /**
- * Pastas de Grupos Musculares Padrão
- * O próprio treinador / administrador abastece com seus exercícios e mídias.
+ * Pastas de Grupos Musculares Padrão (Organizadas de A a Z)
  */
 export const PASTAS_PADRAO: PastaExercicio[] = [
   {
@@ -96,7 +95,975 @@ export const PASTAS_PADRAO: PastaExercicio[] = [
 ];
 
 /**
- * Biblioteca inicial limpa: sem banco de dados pré-carregado.
- * O professor abastece conforme sua metodologia e mídias próprias.
+ * Carga inicial simplificada: 04 exercícios fundamentais por grupo muscular com fotos em alta definição.
+ * Sem links de vídeo para manter os cards limpos (sem selo de play), permitindo ampliação e orientações ao clicar.
  */
-export const DEFAULT_EXERCICIOS: Exercicio[] = [];
+export const DEFAULT_EXERCICIOS: Exercicio[] = [
+  // -------------------------------------------------------------
+  // 1. Abdômen & Core (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_abd_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_abdomen",
+    titulo: "Prancha Isométrica Tradicional",
+    equipamento: "Solo / Colchonete",
+    tipo: "Força",
+    grupo: "Abdômen & Core",
+    grupo_muscular: "Abdômen & Core",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=800&q=80",
+    midias: [
+      {
+        id: "m_abd_01",
+        arquivo_url: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Apoie os antebraços e as pontas dos pés no chão. Mantenha coluna neutra, glúteos e abdômen contraídos em linha reta, sem elevar nem deixar o quadril cair.",
+    ativo: true,
+  },
+  {
+    id: "ex_abd_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_abdomen",
+    titulo: "Abdominal Crunch no Solo",
+    equipamento: "Solo / Colchonete",
+    tipo: "Força",
+    grupo: "Abdômen & Core",
+    grupo_muscular: "Abdômen & Core",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80",
+    midias: [
+      {
+        id: "m_abd_02",
+        arquivo_url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deite-se de costas com joelhos flexionados e pés apoiados. Eleve os ombros aproximando as costelas do quadril, focando na contração do reto abdominal sem forçar a cervical.",
+    ativo: true,
+  },
+  {
+    id: "ex_abd_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_abdomen",
+    titulo: "Abdominal Infra com Elevação de Pernas",
+    equipamento: "Solo / Colchonete",
+    tipo: "Força",
+    grupo: "Abdômen & Core",
+    grupo_muscular: "Abdômen & Core",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+    midias: [
+      {
+        id: "m_abd_03",
+        arquivo_url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado no colchonete com braços ao longo do corpo. Eleve as pernas estendidas ou levemente flexionadas até 90 graus e desça controladamente sem descolar a lombar do chão.",
+    ativo: true,
+  },
+  {
+    id: "ex_abd_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_abdomen",
+    titulo: "Prancha Lateral Estática",
+    equipamento: "Solo / Colchonete",
+    tipo: "Força",
+    grupo: "Abdômen & Core",
+    grupo_muscular: "Abdômen & Core",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80",
+    midias: [
+      {
+        id: "m_abd_04",
+        arquivo_url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deite-se de lado, apoiando o antebraço logo abaixo do ombro. Eleve o quadril formando uma linha reta dos tornozelos à cabeça, ativando os oblíquos e o core.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 2. Bíceps (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_bic_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_biceps",
+    titulo: "Rosca Direta com Barra",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Bíceps",
+    grupo_muscular: "Bíceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+    midias: [
+      {
+        id: "m_bic_01",
+        arquivo_url: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Em pé, pés na largura dos ombros e joelhos levemente soltos. Flexione os cotovelos aproximando a barra do peito sem balancear o tronco. Controle a descida excêntrica.",
+    ativo: true,
+  },
+  {
+    id: "ex_bic_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_biceps",
+    titulo: "Rosca Alternada com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Bíceps",
+    grupo_muscular: "Bíceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+    midias: [
+      {
+        id: "m_bic_02",
+        arquivo_url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Segure um halter em cada mão. Eleve um braço supinando o punho no topo do movimento enquanto o outro permanece estabilizado ao lado do corpo.",
+    ativo: true,
+  },
+  {
+    id: "ex_bic_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_biceps",
+    titulo: "Rosca Martelo com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Bíceps",
+    grupo_muscular: "Bíceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+    midias: [
+      {
+        id: "m_bic_03",
+        arquivo_url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Mantenha a pegada neutra (palmas voltadas uma para a outra). Flexione os cotovelos focando no braquial e braquiorradial sem afastar os cotovelos do tronco.",
+    ativo: true,
+  },
+  {
+    id: "ex_bic_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_biceps",
+    titulo: "Rosca Concentrada no Banco",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Bíceps",
+    grupo_muscular: "Bíceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+    midias: [
+      {
+        id: "m_bic_04",
+        arquivo_url: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado, apoie a parte de trás do braço na parte interna da coxa. Flexione o cotovelo isolando completamente o bíceps no pico de contração.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 3. Dorsal (Costas) (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_dor_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_dorsal",
+    titulo: "Puxada Frontal no Pulley",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Dorsal (Costas)",
+    grupo_muscular: "Dorsal (Costas)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&q=80",
+    midias: [
+      {
+        id: "m_dor_01",
+        arquivo_url: "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com os coxins firmes nas coxas. Puxe a barra em direção à parte superior do peitoral, deprimindo e aduzindo as escápulas sem jogar o tronco excessivamente para trás.",
+    ativo: true,
+  },
+  {
+    id: "ex_dor_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_dorsal",
+    titulo: "Remada Curvada com Barra",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Dorsal (Costas)",
+    grupo_muscular: "Dorsal (Costas)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&q=80",
+    midias: [
+      {
+        id: "m_dor_02",
+        arquivo_url: "https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Incline o tronco à frente a 45 graus com coluna alinhada e abdômen firme. Puxe a barra em direção ao umbigo direcionando os cotovelos para trás e apertando as costas.",
+    ativo: true,
+  },
+  {
+    id: "ex_dor_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_dorsal",
+    titulo: "Remada Baixa no Triângulo",
+    equipamento: "Polia",
+    tipo: "Musculação",
+    grupo: "Dorsal (Costas)",
+    grupo_muscular: "Dorsal (Costas)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+    midias: [
+      {
+        id: "m_dor_03",
+        arquivo_url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com pés apoiados e coluna ereta. Puxe o triângulo contra o abdômen abrindo o peito e fechando as escápulas, controlando o retorno sem curvar as costas.",
+    ativo: true,
+  },
+  {
+    id: "ex_dor_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_dorsal",
+    titulo: "Barra Fixa Pronada",
+    equipamento: "Barra Fixa / Paralela",
+    tipo: "Força",
+    grupo: "Dorsal (Costas)",
+    grupo_muscular: "Dorsal (Costas)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+    midias: [
+      {
+        id: "m_dor_04",
+        arquivo_url: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Segure a barra com pegada pronada ligeiramente mais larga que os ombros. Puxe o corpo até o queixo ultrapassar a barra, focando na força dos dorsais.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 4. Glúteos (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_glu_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_gluteos",
+    titulo: "Elevação Pélvica com Barra",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Glúteos",
+    grupo_muscular: "Glúteos",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+    midias: [
+      {
+        id: "m_glu_01",
+        arquivo_url: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Escápulas apoiadas no banco e barra com protetor sobre a bacia. Pressione os calcanhares no chão e eleve o quadril até alinhar com os joelhos, contraindo os glúteos no topo por 1s.",
+    ativo: true,
+  },
+  {
+    id: "ex_glu_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_gluteos",
+    titulo: "Glúteo no Cabo com Caneleira",
+    equipamento: "Polia",
+    tipo: "Musculação",
+    grupo: "Glúteos",
+    grupo_muscular: "Glúteos",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80",
+    midias: [
+      {
+        id: "m_glu_02",
+        arquivo_url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Prenda a caneleira no cabo baixo da polia. Com o tronco estabilizado e abdômen firme, realize a extensão do quadril para trás contraindo o glúteo máximo sem hiperextender a lombar.",
+    ativo: true,
+  },
+  {
+    id: "ex_glu_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_gluteos",
+    titulo: "Cadeira Abdutora",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Glúteos",
+    grupo_muscular: "Glúteos",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+    midias: [
+      {
+        id: "m_glu_03",
+        arquivo_url: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com as costas firmes no encosto. Afaste as pernas empurrando as almofadas laterais para ativar o glúteo médio, sustentando a abertura máxima por 1s antes de retornar devagar.",
+    ativo: true,
+  },
+  {
+    id: "ex_glu_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_gluteos",
+    titulo: "Afundo / Passada com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Glúteos",
+    grupo_muscular: "Glúteos",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+    midias: [
+      {
+        id: "m_glu_04",
+        arquivo_url: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Segurando os halteres ao lado do corpo, dê um passo à frente flexionando ambos os joelhos a 90 graus. Empurre o chão com o calcanhar frontal para retornar ativando glúteo e quadríceps.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 5. Mobilidade & Alongamento (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_mob_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_mobilidade",
+    titulo: "Rotação Torácica em Quatro Apoios",
+    equipamento: "Chão / Solo",
+    tipo: "Mobilidade",
+    grupo: "Mobilidade & Alongamento",
+    grupo_muscular: "Mobilidade & Alongamento",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80",
+    midias: [
+      {
+        id: "m_mob_01",
+        arquivo_url: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Em quatro apoios no colchonete, apoie uma mão atrás da cabeça. Gire o tronco apontando o cotovelo para o teto abrindo a caixa torácica e retorne suavemente com respiração profunda.",
+    ativo: true,
+  },
+  {
+    id: "ex_mob_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_mobilidade",
+    titulo: "Alongamento de Flexores de Quadril",
+    equipamento: "Chão / Solo",
+    tipo: "Alongamento",
+    grupo: "Mobilidade & Alongamento",
+    grupo_muscular: "Mobilidade & Alongamento",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+    midias: [
+      {
+        id: "m_mob_02",
+        arquivo_url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Na posição de meio-ajoelhado, projete a bacia levemente para a frente mantendo o tronco ereto e o glúteo da perna de trás contraído para alongar o iliopsoas.",
+    ativo: true,
+  },
+  {
+    id: "ex_mob_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_mobilidade",
+    titulo: "Postura Gato-Vaca (Cat-Cow)",
+    equipamento: "Chão / Solo",
+    tipo: "Mobilidade",
+    grupo: "Mobilidade & Alongamento",
+    grupo_muscular: "Mobilidade & Alongamento",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1552196563-552443422b8a?w=800&q=80",
+    midias: [
+      {
+        id: "m_mob_03",
+        arquivo_url: "https://images.unsplash.com/photo-1552196563-552443422b8a?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Em quatro apoios, alterne entre arquear a coluna para cima como um gato soltando o ar e afundar a coluna olhando para frente inspirando, mobilizando cada vértebra.",
+    ativo: true,
+  },
+  {
+    id: "ex_mob_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_mobilidade",
+    titulo: "Alongamento Isquiotibial no Solo",
+    equipamento: "Chão / Solo",
+    tipo: "Alongamento",
+    grupo: "Mobilidade & Alongamento",
+    grupo_muscular: "Mobilidade & Alongamento",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80",
+    midias: [
+      {
+        id: "m_mob_04",
+        arquivo_url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com uma perna estendida à frente e a outra flexionada. Incline o tronco alinhado em direção ao pé da perna esticada mantendo a coluna reta por 30 segundos.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 6. Ombros (Deltoides) (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_omb_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_ombros",
+    titulo: "Desenvolvimento com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Ombros (Deltoides)",
+    grupo_muscular: "Ombros (Deltoides)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=80",
+    midias: [
+      {
+        id: "m_omb_01",
+        arquivo_url: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado em banco a 85 graus com as costas apoiadas. Eleve os halteres acima da cabeça estendendo os braços sem encostar os pesos no topo. Desça até a linha das orelhas.",
+    ativo: true,
+  },
+  {
+    id: "ex_omb_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_ombros",
+    titulo: "Elevação Lateral com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Ombros (Deltoides)",
+    grupo_muscular: "Ombros (Deltoides)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+    midias: [
+      {
+        id: "m_omb_02",
+        arquivo_url: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Em pé, eleve os braços lateralmente até a altura dos ombros com os cotovelos levemente flexionados. Concentre a força no deltoide medial sem usar impulso corporal.",
+    ativo: true,
+  },
+  {
+    id: "ex_omb_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_ombros",
+    titulo: "Elevação Frontal com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Ombros (Deltoides)",
+    grupo_muscular: "Ombros (Deltoides)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+    midias: [
+      {
+        id: "m_omb_03",
+        arquivo_url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Segure os halteres à frente das coxas. Eleve os braços para frente até a altura dos olhos com controle, focando no deltoide anterior.",
+    ativo: true,
+  },
+  {
+    id: "ex_omb_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_ombros",
+    titulo: "Crucifixo Invertido no Banco",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Ombros (Deltoides)",
+    grupo_muscular: "Ombros (Deltoides)",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+    midias: [
+      {
+        id: "m_omb_04",
+        arquivo_url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado de bruços em banco inclinado ou tronco curvado à frente. Abra os braços lateralmente focando no deltoide posterior e romboides sem encolher o pescoço.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 7. Panturrilha (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_pan_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_panturrilha",
+    titulo: "Gêmeos em Pé na Máquina",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Panturrilha",
+    grupo_muscular: "Panturrilha",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+    midias: [
+      {
+        id: "m_pan_01",
+        arquivo_url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Apoie os ombros nas almofadas com as pontas dos pés no degrau. Desça os calcanhares alongando a fáscia e suba na ponta máxima dos pés segurando 1s no topo.",
+    ativo: true,
+  },
+  {
+    id: "ex_pan_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_panturrilha",
+    titulo: "Gêmeos Sentado na Máquina",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Panturrilha",
+    grupo_muscular: "Panturrilha",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+    midias: [
+      {
+        id: "m_pan_02",
+        arquivo_url: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com joelhos a 90 graus e almofada sobre a coxa distal. Eleve os calcanhares focando no músculo sóleo com amplitude completa.",
+    ativo: true,
+  },
+  {
+    id: "ex_pan_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_panturrilha",
+    titulo: "Panturrilha no Leg Press",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Panturrilha",
+    grupo_muscular: "Panturrilha",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+    midias: [
+      {
+        id: "m_pan_03",
+        arquivo_url: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Posicione apenas a ponta dos pés na borda inferior da plataforma do leg press com joelhos semi-estendidos (sem travar). Realize a flexão plantar completa.",
+    ativo: true,
+  },
+  {
+    id: "ex_pan_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_panturrilha",
+    titulo: "Panturrilha Unilateral no Degrau",
+    equipamento: "Chão / Solo",
+    tipo: "Musculação",
+    grupo: "Panturrilha",
+    grupo_muscular: "Panturrilha",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+    midias: [
+      {
+        id: "m_pan_04",
+        arquivo_url: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Em pé em um degrau ou step com uma mão apoiada para equilíbrio. Realize a subida e descida com uma perna por vez, focando no pico de tensão.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 8. Peitoral (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_pei_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_peitoral",
+    titulo: "Supino Reto com Barra",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Peitoral",
+    grupo_muscular: "Peitoral",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+    midias: [
+      {
+        id: "m_pei_01",
+        arquivo_url: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado no banco com pés firmes no chão e escápulas aduzidas. Desça a barra de forma controlada até a linha média do peito e empurre estendendo os braços.",
+    ativo: true,
+  },
+  {
+    id: "ex_pei_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_peitoral",
+    titulo: "Supino Inclinado com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Peitoral",
+    grupo_muscular: "Peitoral",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+    midias: [
+      {
+        id: "m_pei_02",
+        arquivo_url: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Banco inclinado entre 30 e 45 graus. Desça os halteres abrindo os cotovelos em ângulo de 45 a 70 graus e empurre para cima aproximando os pesos no topo.",
+    ativo: true,
+  },
+  {
+    id: "ex_pei_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_peitoral",
+    titulo: "Crucifixo Reto com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Peitoral",
+    grupo_muscular: "Peitoral",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+    midias: [
+      {
+        id: "m_pei_03",
+        arquivo_url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado no banco reto, abra os braços em arco com os cotovelos levemente semiflexionados até sentir o alongamento peitoral. Retorne contraindo o peito.",
+    ativo: true,
+  },
+  {
+    id: "ex_pei_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_peitoral",
+    titulo: "Flexão de Braço no Solo",
+    equipamento: "Peso Corporal",
+    tipo: "Força",
+    grupo: "Peitoral",
+    grupo_muscular: "Peitoral",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+    midias: [
+      {
+        id: "m_pei_04",
+        arquivo_url: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Mãos no chão ligeiramente mais abertas que a linha dos ombros e corpo em prancha. Desça o peito próximo ao chão e empurre com força mantendo o abdômen contraído.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 9. Pernas & Quadríceps (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_qua_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_quadriceps",
+    titulo: "Agachamento Livre com Barra",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Pernas & Quadríceps",
+    grupo_muscular: "Pernas & Quadríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+    midias: [
+      {
+        id: "m_qua_01",
+        arquivo_url: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Barra apoiada no trapézio superior, pés na largura dos ombros com pontas levemente voltadas para fora. Agache mantendo a coluna alinhada até 90 graus e suba pressionando o chão.",
+    ativo: true,
+  },
+  {
+    id: "ex_qua_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_quadriceps",
+    titulo: "Leg Press 45°",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Pernas & Quadríceps",
+    grupo_muscular: "Pernas & Quadríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+    midias: [
+      {
+        id: "m_qua_02",
+        arquivo_url: "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Costas e lombar coladas no banco. Pés centralizados na plataforma. Destrave e flexione os joelhos controladamente sem tirar o quadril do banco; empurre sem travar a articulação.",
+    ativo: true,
+  },
+  {
+    id: "ex_qua_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_quadriceps",
+    titulo: "Cadeira Extensora",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Pernas & Quadríceps",
+    grupo_muscular: "Pernas & Quadríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+    midias: [
+      {
+        id: "m_qua_03",
+        arquivo_url: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Almofada ajustada logo acima dos tornozelos e eixo alinhado com o joelho. Estenda as pernas contraindo o quadríceps e segure 1 segundo no topo antes de descer devagar.",
+    ativo: true,
+  },
+  {
+    id: "ex_qua_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_quadriceps",
+    titulo: "Agachamento Búlgaro com Halteres",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Pernas & Quadríceps",
+    grupo_muscular: "Pernas & Quadríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+    midias: [
+      {
+        id: "m_qua_04",
+        arquivo_url: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Um pé apoiado atrás sobre um banco e outro à frente no solo. Desça verticalmente até que a coxa da frente fique paralela ao solo e retorne empurrando pelo calcanhar.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 10. Posterior de Coxa (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_pos_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_posterior",
+    titulo: "Mesa Flexora Deitada",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Posterior de Coxa",
+    grupo_muscular: "Posterior de Coxa",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80",
+    midias: [
+      {
+        id: "m_pos_01",
+        arquivo_url: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado de bruços, almofada apoiada na panturrilha distal. Flexione os joelhos puxando o rolo em direção aos glúteos sem descolar a bacia do estofado.",
+    ativo: true,
+  },
+  {
+    id: "ex_pos_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_posterior",
+    titulo: "Cadeira Flexora Sentada",
+    equipamento: "Máquina",
+    tipo: "Musculação",
+    grupo: "Posterior de Coxa",
+    grupo_muscular: "Posterior de Coxa",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+    midias: [
+      {
+        id: "m_pos_02",
+        arquivo_url: "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com a trava superior firme acima dos joelhos. Flexione os joelhos puxando o rolo para baixo e para trás com contração máxima nos isquiotibiais.",
+    ativo: true,
+  },
+  {
+    id: "ex_pos_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_posterior",
+    titulo: "Stiff com Barra ou Halteres",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Posterior de Coxa",
+    grupo_muscular: "Posterior de Coxa",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&q=80",
+    midias: [
+      {
+        id: "m_pos_03",
+        arquivo_url: "https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Pés na largura do quadril, joelhos levemente destravados. Incline o tronco empurrando o quadril para trás com a barra rente às pernas até sentir o alongamento posterior.",
+    ativo: true,
+  },
+  {
+    id: "ex_pos_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_posterior",
+    titulo: "Levantamento Terra Romeno (RDL)",
+    equipamento: "Barra",
+    tipo: "Força",
+    grupo: "Posterior de Coxa",
+    grupo_muscular: "Posterior de Coxa",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+    midias: [
+      {
+        id: "m_pos_04",
+        arquivo_url: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Com foco dominante em articulação de quadril, desça a barra até abaixo dos joelhos mantendo as costas travadas e ative posteriores e glúteos na subida.",
+    ativo: true,
+  },
+
+  // -------------------------------------------------------------
+  // 11. Tríceps (4)
+  // -------------------------------------------------------------
+  {
+    id: "ex_tri_01",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_triceps",
+    titulo: "Tríceps na Polia com Corda",
+    equipamento: "Polia",
+    tipo: "Musculação",
+    grupo: "Tríceps",
+    grupo_muscular: "Tríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1530822847156-5df684ec5ee1?w=800&q=80",
+    midias: [
+      {
+        id: "m_tri_01",
+        arquivo_url: "https://images.unsplash.com/photo-1530822847156-5df684ec5ee1?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Cotovelos colados ao lado das costelas. Estenda os braços para baixo abrindo a corda no final do movimento para contração da cabeça lateral do tríceps.",
+    ativo: true,
+  },
+  {
+    id: "ex_tri_02",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_triceps",
+    titulo: "Tríceps Testa com Barra W",
+    equipamento: "Barra",
+    tipo: "Musculação",
+    grupo: "Tríceps",
+    grupo_muscular: "Tríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+    midias: [
+      {
+        id: "m_tri_02",
+        arquivo_url: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Deitado no banco reto, segure a barra W na largura dos ombros. Flexione apenas os cotovelos descendo a barra em direção à testa e estenda sem abrir os braços.",
+    ativo: true,
+  },
+  {
+    id: "ex_tri_03",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_triceps",
+    titulo: "Tríceps Francês Unilateral com Halter",
+    equipamento: "Halteres",
+    tipo: "Musculação",
+    grupo: "Tríceps",
+    grupo_muscular: "Tríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+    midias: [
+      {
+        id: "m_tri_03",
+        arquivo_url: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Sentado com o braço estendido acima da cabeça. Flexione o cotovelo descendo o halter por trás da nuca e estenda até o topo, ativando a cabeça longa do tríceps.",
+    ativo: true,
+  },
+  {
+    id: "ex_tri_04",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    pasta_id: "pasta_triceps",
+    titulo: "Mergulho no Banco / Paralelas",
+    equipamento: "Peso Corporal",
+    tipo: "Força",
+    grupo: "Tríceps",
+    grupo_muscular: "Tríceps",
+    video: "",
+    midia: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+    midias: [
+      {
+        id: "m_tri_04",
+        arquivo_url: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=800&q=80",
+        arquivo_tipo: "imagem",
+      },
+    ],
+    orientacoes: "Apoie as mãos na borda do banco com pernas estendidas à frente. Desça flexionando os cotovelos a 90 graus rente ao banco e empurre de volta estendendo os tríceps.",
+    ativo: true,
+  },
+];

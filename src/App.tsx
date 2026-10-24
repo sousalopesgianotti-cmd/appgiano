@@ -369,22 +369,32 @@ function AppContent() {
     setExercicios((prev) => prev.filter((e) => e.pasta_id !== id));
   };
 
-  // Gestão da biblioteca de exercícios (persiste no localStorage - começa limpa)
+  // Gestão da biblioteca de exercícios (persiste no localStorage com carga inicial de 4 por pasta)
   const [exercicios, setExercicios] = useState<Exercicio[]>(() => {
     if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem('giano_exercicios_v6');
-      if (saved) {
+      const savedV7 = localStorage.getItem('giano_exercicios_v7');
+      if (savedV7) {
         try {
-          return JSON.parse(saved);
+          return JSON.parse(savedV7);
+        } catch {}
+      }
+      // Se o usuário já criou exercícios locais (ex: Flexão Inclinada), mescla mantendo-os
+      const savedV6 = localStorage.getItem('giano_exercicios_v6');
+      if (savedV6) {
+        try {
+          const userEx = JSON.parse(savedV6) as Exercicio[];
+          const idsDefault = new Set(DEFAULT_EXERCICIOS.map((d) => d.id));
+          const novosDoUsuario = userEx.filter((u) => !idsDefault.has(u.id));
+          return [...DEFAULT_EXERCICIOS, ...novosDoUsuario];
         } catch {}
       }
     }
-    return DEFAULT_EXERCICIOS; // array vazio []
+    return DEFAULT_EXERCICIOS;
   });
 
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('giano_exercicios_v6', JSON.stringify(exercicios));
+      localStorage.setItem('giano_exercicios_v7', JSON.stringify(exercicios));
     }
   }, [exercicios]);
 
