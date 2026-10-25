@@ -14,7 +14,7 @@ import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
 import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio } from '@/lib/types';
-import { Smartphone, Monitor } from 'lucide-react';
+import { Monitor } from 'lucide-react';
 
 // Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
 const ALUNOS_INICIAIS: Aluno[] = [
@@ -683,21 +683,6 @@ function AppContent() {
           )}
         </main>
       </div>
-
-      {/* Botão flutuante para testar o App do Aluno no Celular */}
-      <button
-        onClick={() => {
-          setIsMobileView(true);
-          if (typeof window !== 'undefined' && window.history) {
-            window.history.pushState({}, '', '/app');
-          }
-        }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs shadow-2xl shadow-amber-500/30 active:scale-95 transition-all"
-        title="Abrir Pré-visualização do App do Aluno"
-      >
-        <Smartphone className="size-4 stroke-[2.5]" />
-        <span>Ver App do Aluno</span>
-      </button>
 
       <Toaster position="top-right" richColors />
     </div>

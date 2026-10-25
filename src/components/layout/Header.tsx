@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
         {onOpenAppAluno && (
           <button
             onClick={onOpenAppAluno}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-500 text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-neutral-950 border border-amber-500/30 text-amber-500 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             title="Visualizar App Mobile do Aluno"
           >
             <Smartphone className="size-3.5" />
