@@ -41,6 +41,7 @@ export type Aluno = {
   ativo: boolean;
   app_liberado: boolean;
   senha?: string;
+  treinos_ids?: string[];
   created_at?: string;
 };
 
