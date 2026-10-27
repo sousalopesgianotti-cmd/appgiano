@@ -1,73 +1,53 @@
 import type { Aluno, Treino } from '@/lib/types';
 
-export interface ConvitePayload {
-  aluno: Aluno;
-  treinos?: Treino[];
-  criadoEm: string;
+/**
+ * Gera um link de convite limpo, curto e elegante para o aluno.
+ * Exemplo: https://www.appgiano.com.br/app?alunoId=6e81009c...&n=Maria&s=6156
+ */
+export function gerarLinkConvite(origin: string, aluno: Aluno, _treinosDisponiveis: Treino[] = []): string {
+  const primeiroNome = aluno.nome.trim().split(' ')[0] || aluno.nome.trim();
+  const telDigits = aluno.telefone.replace(/\D/g, '');
+  const senhaProvisoria = (aluno.senha && aluno.senha.trim())
+    ? aluno.senha.trim()
+    : (telDigits.slice(-4) || '1234');
+
+  const params = new URLSearchParams();
+  params.set('alunoId', aluno.id);
+  params.set('n', primeiroNome);
+  params.set('s', senhaProvisoria);
+  if (aluno.treinos_ids && aluno.treinos_ids.length > 0) {
+    params.set('t', aluno.treinos_ids.join(','));
+  }
+
+  return `${origin}/app?${params.toString()}`;
 }
 
 /**
- * Codifica de forma segura para URL os dados do aluno e seus treinos vinculados.
- * Suporta caracteres UTF-8 (acentos, emojis, etc.).
+ * Extrai os dados do aluno a partir dos parâmetros simples da URL (se o aluno ainda não existir localmente no aparelho)
  */
-export function codificarConvite(aluno: Aluno, treinosAluno: Treino[] = []): string {
-  const payload: ConvitePayload = {
-    aluno: {
-      ...aluno,
-      treinos_ids: aluno.treinos_ids || [],
-    },
-    treinos: treinosAluno.length > 0 ? treinosAluno : undefined,
-    criadoEm: new Date().toISOString(),
+export function extrairAlunoDoLink(searchParams: URLSearchParams): Aluno | null {
+  const id = searchParams.get('alunoId') || searchParams.get('id');
+  if (!id) return null;
+
+  const nome = searchParams.get('n') || searchParams.get('nome') || 'Aluno';
+  const senha = searchParams.get('s') || searchParams.get('senha') || '';
+  const treinosStr = searchParams.get('t') || '';
+  const treinos_ids = treinosStr ? treinosStr.split(',').filter(Boolean) : [];
+
+  return {
+    id,
+    professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
+    nome,
+    email: '',
+    telefone: senha ? `1199999${senha}` : '',
+    nascimento: '01/01/2000',
+    grupo: 'Geral',
+    valor_mensalidade: 0,
+    dia_vencimento: 10,
+    ativo: true,
+    app_liberado: true,
+    senha,
+    treinos_ids,
+    created_at: new Date().toISOString(),
   };
-
-  try {
-    const jsonStr = JSON.stringify(payload);
-    // Codificação UTF-8 compatível com Base64
-    const utf8Bytes = encodeURIComponent(jsonStr);
-    const base64 = btoa(utf8Bytes);
-    // Transforma em base64 URL-safe
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  } catch (err) {
-    console.error('Falha ao codificar convite:', err);
-    return '';
-  }
-}
-
-/**
- * Decodifica o payload do convite a partir da URL.
- */
-export function decodificarConvite(token: string): ConvitePayload | null {
-  try {
-    if (!token) return null;
-    // Reverte URL-safe base64 para standard base64
-    let base64 = token.replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4) {
-      base64 += '=';
-    }
-    const utf8Bytes = atob(base64);
-    const jsonStr = decodeURIComponent(utf8Bytes);
-    const parsed = JSON.parse(jsonStr) as ConvitePayload;
-
-    if (parsed && parsed.aluno && parsed.aluno.id && parsed.aluno.nome) {
-      return parsed;
-    }
-  } catch (err) {
-    console.warn('Falha ao decodificar convite da URL:', err);
-  }
-  return null;
-}
-
-/**
- * Gera o link completo de convite para compartilhar no WhatsApp ou copiar.
- */
-export function gerarLinkConvite(origin: string, aluno: Aluno, treinosDisponiveis: Treino[] = []): string {
-  const treinosAluno = (aluno.treinos_ids || [])
-    .map((id) => treinosDisponiveis.find((t) => t.id === id))
-    .filter((t): t is Treino => Boolean(t));
-
-  const token = codificarConvite(aluno, treinosAluno);
-  if (token) {
-    return `${origin}/app?c=${token}&alunoId=${aluno.id}`;
-  }
-  return `${origin}/app?alunoId=${aluno.id}`;
 }

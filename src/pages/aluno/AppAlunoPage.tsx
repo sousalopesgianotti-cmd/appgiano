@@ -41,7 +41,7 @@ import {
 import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
 import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
-import { decodificarConvite } from '@/lib/convite';
+import { extrairAlunoDoLink } from '@/lib/convite';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -69,25 +69,23 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
-  // Detecção de aluno convidado via payload seguro na URL ou parâmetro alunoId
-  const convitePayload = React.useMemo(() => {
+  // Detecção de aluno convidado via parâmetros limpos na URL (?alunoId=...&n=Maria&s=6156)
+  const alunoUrlParams = React.useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('c') || params.get('convite');
-    return token ? decodificarConvite(token) : null;
+    return extrairAlunoDoLink(new URLSearchParams(window.location.search));
   }, []);
 
   const alunoIdUrl = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('alunoId') || convitePayload?.aluno.id || alunoIdInicial
+    ? new URLSearchParams(window.location.search).get('alunoId') || alunoUrlParams?.id || alunoIdInicial
     : alunoIdInicial;
 
   const alunoConvidado = React.useMemo(() => {
-    if (convitePayload?.aluno) {
-      const emLista = alunos.find((a) => a.id === convitePayload.aluno.id);
-      return emLista || convitePayload.aluno;
+    if (alunoIdUrl) {
+      const match = alunos.find((a) => a.id === alunoIdUrl);
+      if (match) return match;
     }
-    return alunoIdUrl ? alunos.find((a) => a.id === alunoIdUrl) : null;
-  }, [convitePayload, alunoIdUrl, alunos]);
+    return alunoUrlParams;
+  }, [alunoUrlParams, alunoIdUrl, alunos]);
 
   // Sessão do aluno: só entra direto se já autenticado previamente para este aluno
   const [alunoLogado, setAlunoLogado] = useState<Aluno | null>(() => {
@@ -156,9 +154,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   // Treinos atribuídos exclusivamente a este aluno
   const treinosDoAluno = React.useMemo(() => {
     if (!alunoLogado?.treinos_ids || alunoLogado.treinos_ids.length === 0) return [];
-    const poolTreinos = [...treinos, ...(convitePayload?.treinos || [])];
-    return poolTreinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
-  }, [alunoLogado?.treinos_ids, treinos, convitePayload?.treinos]);
+    return treinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
+  }, [alunoLogado?.treinos_ids, treinos]);
 
   // Avaliações físicas exclusivas deste aluno
   const avaliacoesDoAluno = React.useMemo(() => {

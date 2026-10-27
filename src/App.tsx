@@ -14,7 +14,7 @@ import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
 import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
-import { decodificarConvite } from '@/lib/convite';
+import { extrairAlunoDoLink } from '@/lib/convite';
 import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
@@ -331,22 +331,19 @@ function AppContent() {
         } catch {}
       }
     }
-    // Sincroniza aluno vindo pelo link de convite (token 'c' ou 'convite')
+    // Sincroniza aluno vindo pelo link limpo de convite (alunoId + n + s)
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const token = params.get('c') || params.get('convite');
-      if (token) {
-        const payload = decodificarConvite(token);
-        if (payload?.aluno) {
-          const idx = listaAtual.findIndex((a) => a.id === payload.aluno.id);
-          if (idx >= 0) {
-            listaAtual[idx] = { ...listaAtual[idx], ...payload.aluno };
-          } else {
-            listaAtual = [payload.aluno, ...listaAtual];
-          }
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('giano_alunos_db', JSON.stringify(listaAtual));
-          }
+      const alunoUrl = extrairAlunoDoLink(params);
+      if (alunoUrl) {
+        const idx = listaAtual.findIndex((a) => a.id === alunoUrl.id);
+        if (idx >= 0) {
+          listaAtual[idx] = { ...listaAtual[idx], ...alunoUrl };
+        } else {
+          listaAtual = [alunoUrl, ...listaAtual];
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('giano_alunos_db', JSON.stringify(listaAtual));
         }
       }
     }
@@ -518,34 +515,15 @@ function AppContent() {
 
   // Gestão da biblioteca de Treinos (persiste no localStorage)
   const [treinos, setTreinos] = useState<Treino[]>(() => {
-    let listaAtual = TREINOS_INICIAIS;
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('giano_treinos_db_v1');
       if (saved) {
         try {
-          listaAtual = JSON.parse(saved);
+          return JSON.parse(saved);
         } catch {}
       }
     }
-    // Sincroniza eventuais treinos customizados trazidos no convite
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('c') || params.get('convite');
-      if (token) {
-        const payload = decodificarConvite(token);
-        if (payload?.treinos && payload.treinos.length > 0) {
-          payload.treinos.forEach((tr) => {
-            if (!listaAtual.some((t) => t.id === tr.id)) {
-              listaAtual.push(tr);
-            }
-          });
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('giano_treinos_db_v1', JSON.stringify(listaAtual));
-          }
-        }
-      }
-    }
-    return listaAtual;
+    return TREINOS_INICIAIS;
   });
 
   useEffect(() => {
