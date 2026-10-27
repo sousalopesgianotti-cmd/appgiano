@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { Aluno, Treino, Exercicio, PastaExercicio, ExercicioItemTreino } from '@/lib/types';
 import { parseMedia } from '@/lib/media.utils';
+import { enviarTreinosParaNuvem } from '@/lib/syncService';
 import { toast } from 'sonner';
 
 interface TreinosAlunoNexurViewProps {
@@ -101,6 +102,13 @@ export const TreinosAlunoNexurView: React.FC<TreinosAlunoNexurViewProps> = ({
     });
   }, [exercicios, buscaExercicio, pastaSelecionada]);
 
+  // Sincroniza automaticamente treinos ativos com a nuvem na abertura
+  React.useEffect(() => {
+    if (aluno && treinosDoAluno.length > 0) {
+      enviarTreinosParaNuvem(aluno, treinosDoAluno);
+    }
+  }, [aluno.id, treinosDoAluno.length]);
+
   // Alterna ativação/desativação de um treino pelo interruptor (toggle)
   const handleToggleTreinoAtivo = async (treinoId: string) => {
     const estaAtivo = treinosIdsAluno.includes(treinoId);
@@ -112,10 +120,15 @@ export const TreinosAlunoNexurView: React.FC<TreinosAlunoNexurViewProps> = ({
       await onUpdateAluno(aluno.id, { treinos_ids: novosIds });
       const treino = treinos.find((t) => t.id === treinoId);
       const nomeT = treino ? treino.nome : 'Treino';
+
+      // Sincroniza em nuvem em tempo real com o app móvel da aluna!
+      const treinosAtivos = treinos.filter((t) => novosIds.includes(t.id));
+      enviarTreinosParaNuvem({ ...aluno, treinos_ids: novosIds }, treinosAtivos);
+
       if (estaAtivo) {
         toast.info(`"${nomeT}" desativado no app de ${aluno.nome.split(' ')[0]}.`);
       } else {
-        toast.success(`"${nomeT}" ativado no app de ${aluno.nome.split(' ')[0]}!`);
+        toast.success(`"${nomeT}" liberado no app de ${aluno.nome.split(' ')[0]}! ☁️`);
       }
     } catch {
       toast.error('Erro ao atualizar status do treino.');
@@ -152,7 +165,9 @@ export const TreinosAlunoNexurView: React.FC<TreinosAlunoNexurViewProps> = ({
     try {
       await onUpdateAluno(aluno.id, { treinos_ids: novosIds });
       const treino = treinos.find((t) => t.id === treinoId);
-      toast.success(`Ficha "${treino?.nome || 'Treino'}" adicionada ao aluno!`);
+      const treinosAtivos = treinos.filter((t) => novosIds.includes(t.id));
+      enviarTreinosParaNuvem({ ...aluno, treinos_ids: novosIds }, treinosAtivos);
+      toast.success(`Ficha "${treino?.nome || 'Treino'}" adicionada e liberada no app! ☁️`);
       setModalImportarAberto(false);
     } catch {
       toast.error('Erro ao importar ficha.');
@@ -199,12 +214,20 @@ export const TreinosAlunoNexurView: React.FC<TreinosAlunoNexurViewProps> = ({
     try {
       if (treinoEmEdicao) {
         // Atualiza treino existente
-        await onUpdateTreino(treinoEmEdicao.id, {
+        const patchTreino = {
           nome: nomeTreino.trim(),
           descricao: descricaoTreino.trim(),
           exercicios: exerciciosDaFicha,
-        });
-        toast.success(`Treino "${nomeTreino.trim()}" atualizado com sucesso!`);
+        };
+        await onUpdateTreino(treinoEmEdicao.id, patchTreino);
+
+        const treinosAtualizados = treinos.map((t) =>
+          t.id === treinoEmEdicao.id ? { ...t, ...patchTreino } : t
+        );
+        const treinosAtivos = treinosAtualizados.filter((t) => treinosIdsAluno.includes(t.id));
+        enviarTreinosParaNuvem(aluno, treinosAtivos);
+
+        toast.success(`Treino "${nomeTreino.trim()}" atualizado e sincronizado na nuvem! ☁️`);
       } else {
         // Cria novo treino
         const novo = await onAddTreino({
@@ -215,12 +238,17 @@ export const TreinosAlunoNexurView: React.FC<TreinosAlunoNexurViewProps> = ({
           created_at: new Date().toISOString(),
         });
         if (novo && 'id' in novo) {
-          const novoId = (novo as Treino).id;
-          if (!treinosIdsAluno.includes(novoId)) {
-            await onUpdateAluno(aluno.id, { treinos_ids: [...treinosIdsAluno, novoId] });
-          }
+          const novoTreino = novo as Treino;
+          const novosIds = [...treinosIdsAluno, novoTreino.id];
+          await onUpdateAluno(aluno.id, { treinos_ids: novosIds });
+
+          const treinosAtivos = [
+            ...treinos.filter((t) => treinosIdsAluno.includes(t.id)),
+            novoTreino,
+          ];
+          enviarTreinosParaNuvem({ ...aluno, treinos_ids: novosIds }, treinosAtivos);
         }
-        toast.success(`Treino "${nomeTreino.trim()}" montado e liberado para o aluno!`);
+        toast.success(`Treino "${nomeTreino.trim()}" montado e liberado para o aluno! ☁️`);
       }
       setModo('lista');
     } catch {

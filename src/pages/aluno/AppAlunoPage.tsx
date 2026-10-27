@@ -42,6 +42,7 @@ import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
 import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
+import { buscarTreinosDaNuvem } from '@/lib/syncService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -165,11 +166,80 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     }
   }, [alunos, alunoLogado]);
 
+  // Estado de treinos sincronizados diretamente da nuvem
+  const [treinosNuvem, setTreinosNuvem] = useState<Treino[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_treinos_nuvem_cache');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return [];
+  });
+
+  // Busca treinos atualizados da nuvem
+  const carregarTreinosDaNuvem = React.useCallback(async () => {
+    const targetId = alunoLogado?.id || alunoConvidado?.id || alunoIdUrl;
+    if (!targetId) return;
+
+    try {
+      const cloudData = await buscarTreinosDaNuvem(targetId);
+      if (cloudData) {
+        if (cloudData.treinos && cloudData.treinos.length > 0) {
+          setTreinosNuvem(cloudData.treinos);
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('giano_treinos_nuvem_cache', JSON.stringify(cloudData.treinos));
+          }
+        }
+        if (cloudData.treinos_ids && cloudData.treinos_ids.length > 0) {
+          setAlunoLogado((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              treinos_ids: cloudData.treinos_ids,
+            };
+          });
+        }
+      }
+    } catch {}
+  }, [alunoLogado?.id, alunoConvidado?.id, alunoIdUrl]);
+
+  // Carrega da nuvem na montagem e quando o aluno logar
+  useEffect(() => {
+    carregarTreinosDaNuvem();
+  }, [carregarTreinosDaNuvem]);
+
+  // Combina biblioteca de treinos local com treinos sincronizados da nuvem
+  const todosOsTreinos = React.useMemo(() => {
+    const mapa = new Map<string, Treino>();
+    treinos.forEach((t) => mapa.set(t.id, t));
+    treinosNuvem.forEach((t) => mapa.set(t.id, t));
+    return Array.from(mapa.values());
+  }, [treinos, treinosNuvem]);
+
   // Treinos atribuídos exclusivamente a este aluno
   const treinosDoAluno = React.useMemo(() => {
-    if (!alunoLogado?.treinos_ids || alunoLogado.treinos_ids.length === 0) return [];
-    return treinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
-  }, [alunoLogado?.treinos_ids, treinos]);
+    const ids = alunoLogado?.treinos_ids || [];
+    if (ids.length === 0) {
+      if (treinosNuvem.length > 0) return treinosNuvem;
+      return [];
+    }
+    const filtrados = todosOsTreinos.filter((t) => ids.includes(t.id));
+    if (filtrados.length > 0) return filtrados;
+    if (treinosNuvem.length > 0) return treinosNuvem;
+    return [];
+  }, [alunoLogado?.treinos_ids, todosOsTreinos, treinosNuvem]);
+
+  // Se o aluno ainda está aguardando liberação do treino (0 treinos), consulta a nuvem a cada 3.5 segundos
+  useEffect(() => {
+    if (treinosDoAluno.length > 0) return;
+    const interval = setInterval(() => {
+      carregarTreinosDaNuvem();
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [treinosDoAluno.length, carregarTreinosDaNuvem]);
 
   // Avaliações físicas exclusivas deste aluno
   const avaliacoesDoAluno = React.useMemo(() => {

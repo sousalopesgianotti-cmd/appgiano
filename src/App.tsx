@@ -15,6 +15,7 @@ import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
+import { enviarTreinosParaNuvem } from '@/lib/syncService';
 import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
@@ -386,6 +387,7 @@ function AppContent() {
   };
 
   const handleUpdateAluno = async (id: string, patch: Partial<Aluno>) => {
+    let alunoAtualizado: Aluno | null = null;
     setAlunos((prev) =>
       prev.map((a) => {
         if (a.id !== id) return a;
@@ -393,9 +395,15 @@ function AppContent() {
         if (patch.senha) {
           atualizado.senha_alterada = true;
         }
+        alunoAtualizado = atualizado;
         return atualizado;
       })
     );
+
+    if (alunoAtualizado && patch.treinos_ids) {
+      const treinosAtivos = treinos.filter((t) => patch.treinos_ids?.includes(t.id));
+      enviarTreinosParaNuvem(alunoAtualizado, treinosAtivos);
+    }
   };
 
   // Gestão de Avaliações Físicas (persiste no localStorage)
