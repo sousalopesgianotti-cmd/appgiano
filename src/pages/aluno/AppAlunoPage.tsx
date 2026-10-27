@@ -945,6 +945,25 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
           {/* ======================================================== */}
           {abaAtiva === 'treinos' && (
             <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Cabeçalho da Aba com Botão Voltar */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setAbaAtiva('inicio')}
+                  className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
+                  title="Voltar ao Início"
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
+                <div>
+                  <h2 className="text-xl font-black text-white">Meus Treinos</h2>
+                  <p className="text-xs text-neutral-400">
+                    {treinosDoAluno.length > 0
+                      ? (treinoAtivo?.nome || 'Rotina de exercícios')
+                      : 'Rotina personalizada'}
+                  </p>
+                </div>
+              </div>
+
               {treinosDoAluno.length === 0 ? (
                 /* Estado sem carga de treino: Mensagem e botão WhatsApp exclusivos aqui */
                 <div className="py-10 px-4 flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
