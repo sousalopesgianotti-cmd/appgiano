@@ -16,8 +16,33 @@ import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
 import { Monitor } from 'lucide-react';
 
-// Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
+// Sincronização e limpeza automática de dados mock legados na versão oficial de produção
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  const PROD_RELEASE_KEY = 'giano_v1_prod_clean_release';
+  if (localStorage.getItem(PROD_RELEASE_KEY) !== 'v1') {
+    localStorage.removeItem('giano_professores_db');
+    localStorage.removeItem('giano_alunos_db');
+    localStorage.setItem(PROD_RELEASE_KEY, 'v1');
+  }
+}
+
+// Dados iniciais de Alunos
 const ALUNOS_INICIAIS: Aluno[] = [
+  {
+    id: "a1b2c3d4-0003-4000-8000-000000000003",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    nome: "Maria Jose Moreira",
+    email: "mariajose@email.com",
+    telefone: "11966665555",
+    nascimento: "25/05/1970",
+    grupo: "Condicionamento",
+    valor_mensalidade: 0,
+    dia_vencimento: 0,
+    ativo: true,
+    app_liberado: true,
+    senha: "5555",
+    treinos_ids: ["tr_peito_triceps_1", "tr_costas_biceps_2"],
+  },
   {
     id: "7132f4da-920a-4bb0-9db2-ab6af05c5d7a",
     professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
@@ -31,60 +56,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     ativo: true,
     app_liberado: true,
     senha: "6692",
-    treinos_ids: [],
-  },
-  {
-    id: "a1b2c3d4-0001-4000-8000-000000000001",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "André Teste Treino",
-    email: "andre@email.com",
-    telefone: "11988887777",
-    nascimento: "21/08/1971",
-    grupo: "Consultoria",
-    valor_mensalidade: 150,
-    dia_vencimento: 5,
-    ativo: true,
-    app_liberado: true,
-    treinos_ids: ["tr_peito_triceps_1"],
-  },
-  {
-    id: "a1b2c3d4-0002-4000-8000-000000000002",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "Gustavo Ferreira da Silva",
-    email: "gustavo@email.com",
-    telefone: "11977776666",
-    nascimento: "21/11/2005",
-    grupo: "Atleta",
-    valor_mensalidade: 200,
-    dia_vencimento: 15,
-    ativo: true,
-    app_liberado: true,
-  },
-  {
-    id: "a1b2c3d4-0003-4000-8000-000000000003",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "Maria Jose Moreira",
-    email: "mariajose@email.com",
-    telefone: "11966665555",
-    nascimento: "25/05/1970",
-    grupo: "Condicionamento",
-    valor_mensalidade: 0,
-    dia_vencimento: 0,
-    ativo: true,
-    app_liberado: true,
-  },
-  {
-    id: "a1b2c3d4-0004-4000-8000-000000000004",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "Sérgio Darduini",
-    email: "sergio@email.com",
-    telefone: "11955554444",
-    nascimento: "07/06/1971",
-    grupo: "Grupo 1",
-    valor_mensalidade: 160,
-    dia_vencimento: 20,
-    ativo: true,
-    app_liberado: true,
+    treinos_ids: ["tr_pernas_completo_3"],
   },
 ];
 
@@ -217,39 +189,6 @@ const PROFESSORES_INICIAIS: Professor[] = [
     valor_mensalidade: 0,
     ativo: true,
     created_at: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: "prof_carlos_eduardo",
-    nome: "Carlos Eduardo Silva",
-    email: "carlos.personal@gmail.com",
-    telefone: "11998765432",
-    plano_nome: "Starter 10",
-    limite_alunos: 10,
-    valor_mensalidade: 49,
-    ativo: true,
-    created_at: "2026-02-15T00:00:00Z",
-  },
-  {
-    id: "prof_fernanda_lima",
-    nome: "Fernanda Lima Fitness",
-    email: "fernanda.treinadora@gmail.com",
-    telefone: "11987654321",
-    plano_nome: "Pro 30",
-    limite_alunos: 30,
-    valor_mensalidade: 89,
-    ativo: true,
-    created_at: "2026-03-01T00:00:00Z",
-  },
-  {
-    id: "prof_rodrigo_coach",
-    nome: "Rodrigo Assessoria Esportiva",
-    email: "rodrigo.coach@gmail.com",
-    telefone: "11976543210",
-    plano_nome: "Elite 60",
-    limite_alunos: 60,
-    valor_mensalidade: 149,
-    ativo: false,
-    created_at: "2026-03-10T00:00:00Z",
   },
 ];
 
