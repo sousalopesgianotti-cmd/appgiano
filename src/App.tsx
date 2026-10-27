@@ -532,13 +532,14 @@ function AppContent() {
     }
   }, [treinos]);
 
-  const handleAddTreino = async (novo: Omit<Treino, 'id'>) => {
+  const handleAddTreino = async (novo: Omit<Treino, 'id'>): Promise<Treino> => {
     const treinoCriado: Treino = {
       ...novo,
       id: `tr_${crypto.randomUUID().slice(0, 8)}`,
       created_at: new Date().toISOString(),
     };
     setTreinos((prev) => [treinoCriado, ...prev]);
+    return treinoCriado;
   };
 
   const handleUpdateTreino = async (id: string, patch: Partial<Treino>) => {
@@ -680,6 +681,8 @@ function AppContent() {
               onAddAluno={handleAddAluno}
               onUpdateAluno={handleUpdateAluno}
               onDeleteAluno={handleDeleteAluno}
+              onAddTreino={handleAddTreino}
+              onDeleteTreino={handleDeleteTreino}
               onSelectAlunoTreinos={(aluno) => {
                 setIsMobileView(true);
                 if (typeof window !== 'undefined' && window.history) {

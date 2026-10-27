@@ -33,6 +33,8 @@ type ClientesPageProps = {
   onUpdateAluno: (id: string, patch: Partial<Aluno>) => Promise<void>;
   onDeleteAluno: (id: string) => Promise<void>;
   onSelectAlunoTreinos?: (aluno: Aluno) => void;
+  onAddTreino?: (novo: Omit<Treino, 'id'>) => Promise<Treino | void>;
+  onDeleteTreino?: (id: string) => Promise<void>;
 };
 
 export const ClientesPage: React.FC<ClientesPageProps> = ({
@@ -43,6 +45,8 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
   onUpdateAluno,
   onDeleteAluno,
   onSelectAlunoTreinos,
+  onAddTreino,
+  onDeleteTreino,
 }) => {
   const [modoVisualizacao, setModoVisualizacao] = useState<'grade' | 'lista'>('lista');
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,6 +68,61 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
     setAlunoPrescrevendo(aluno);
     setTreinosSelecionados(aluno.treinos_ids || []);
     setModalPrescreverAberto(true);
+  };
+
+  // Estados para inclusão e exclusão de fichas dentro do modal de prescrição
+  const [criandoNovaFicha, setCriandoNovaFicha] = useState(false);
+  const [novoTreinoNome, setNovoTreinoNome] = useState('');
+  const [novoTreinoDescricao, setNovoTreinoDescricao] = useState('');
+  const [salvandoNovaFicha, setSalvandoNovaFicha] = useState(false);
+
+  const handleCriarNovaFichaModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoTreinoNome.trim()) {
+      toast.error('Informe o nome da ficha (ex: Treino D — Ombros).');
+      return;
+    }
+
+    setSalvandoNovaFicha(true);
+    try {
+      if (onAddTreino) {
+        const treinoCriado = await onAddTreino({
+          nome: novoTreinoNome.trim(),
+          descricao: novoTreinoDescricao.trim() || 'Ficha personalizada',
+          professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
+          exercicios: [],
+          created_at: new Date().toISOString(),
+        });
+        if (treinoCriado && 'id' in treinoCriado) {
+          setTreinosSelecionados((prev) => [...prev, (treinoCriado as Treino).id]);
+        }
+      }
+      toast.success(`Ficha "${novoTreinoNome.trim()}" criada com sucesso!`);
+      setNovoTreinoNome('');
+      setNovoTreinoDescricao('');
+      setCriandoNovaFicha(false);
+    } catch {
+      toast.error('Erro ao criar nova ficha.');
+    } finally {
+      setSalvandoNovaFicha(false);
+    }
+  };
+
+  const handleExcluirFichaModal = async (e: React.MouseEvent, treinoId: string, treinoNome: string) => {
+    e.stopPropagation();
+    if (!window.confirm(`Tem certeza que deseja excluir a ficha "${treinoNome}" permanentemente da biblioteca de treinos?`)) {
+      return;
+    }
+
+    try {
+      if (onDeleteTreino) {
+        await onDeleteTreino(treinoId);
+      }
+      setTreinosSelecionados((prev) => prev.filter((id) => id !== treinoId));
+      toast.success(`Ficha "${treinoNome}" excluída da biblioteca.`);
+    } catch {
+      toast.error('Erro ao excluir ficha.');
+    }
   };
 
   const toggleTreinoSelecionado = (treinoId: string) => {
@@ -742,13 +801,76 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
               </button>
             </div>
 
-            {/* Explicação e Contador */}
-            <div className="flex items-center justify-between text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-              <span>Selecione as fichas liberadas para este aluno no app:</span>
-              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">
-                {treinosSelecionados.length} selecionada(s)
-              </span>
+            {/* Explicação, Contador e Botão Nova Ficha */}
+            <div className="flex items-center justify-between text-xs font-semibold text-neutral-500 dark:text-neutral-400 gap-2">
+              <span className="truncate">Selecione as fichas liberadas no app:</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">
+                  {treinosSelecionados.length} selecionada(s)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCriandoNovaFicha(!criandoNovaFicha)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Criar nova ficha de treino"
+                >
+                  <Plus className="size-3.5 stroke-[3]" />
+                  <span>Nova Ficha</span>
+                </button>
+              </div>
             </div>
+
+            {/* Formulário Rápido para Criar Nova Ficha */}
+            {criandoNovaFicha && (
+              <form onSubmit={handleCriarNovaFichaModal} className="p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-500 flex items-center gap-1.5">
+                    <Sparkles className="size-3.5" />
+                    <span>Nova Ficha na Biblioteca</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCriandoNovaFicha(false)}
+                    className="size-6 rounded-lg text-neutral-400 hover:text-white flex items-center justify-center hover:bg-neutral-800"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Nome da ficha (ex: Treino D — Ombros & Trapézio)"
+                  value={novoTreinoNome}
+                  onChange={(e) => setNovoTreinoNome(e.target.value)}
+                  className="w-full h-9 px-3 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Descrição / Foco (opcional)"
+                  value={novoTreinoDescricao}
+                  onChange={(e) => setNovoTreinoDescricao(e.target.value)}
+                  className="w-full h-9 px-3 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <div className="flex items-center justify-end gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setCriandoNovaFicha(false)}
+                    className="px-2.5 h-7 rounded-lg border border-neutral-300 dark:border-neutral-700 text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={salvandoNovaFicha}
+                    className="px-3 h-7 rounded-lg bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-[11px] flex items-center gap-1 transition-all shadow-xs active:scale-95 cursor-pointer"
+                  >
+                    <Plus className="size-3 stroke-[3]" />
+                    <span>Adicionar Ficha</span>
+                  </button>
+                </div>
+              </form>
+            )}
 
             {/* Lista de Treinos da Biblioteca com Checkboxes */}
             <div className="max-h-72 overflow-y-auto space-y-2.5 pr-1">
@@ -756,7 +878,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                 <div className="p-8 text-center text-neutral-400 space-y-2">
                   <Dumbbell className="size-8 mx-auto text-neutral-300 dark:text-neutral-700" />
                   <p className="text-xs font-semibold">Nenhuma ficha cadastrada na biblioteca.</p>
-                  <p className="text-[11px] text-neutral-500">Crie treinos na aba "Treinos" para prescrever aos alunos.</p>
+                  <p className="text-[11px] text-neutral-500">Crie treinos na aba "Treinos" ou use o botão "+ Nova Ficha" acima.</p>
                 </div>
               ) : (
                 treinos.map((treino) => {
@@ -795,15 +917,26 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                         </div>
                       </div>
 
-                      {/* Checkbox customizado */}
-                      <div
-                        className={`size-6 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
-                          isChecked
-                            ? 'bg-amber-500 border-amber-500 text-neutral-950'
-                            : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900'
-                        }`}
-                      >
-                        {isChecked && <CheckCircle2 className="size-4 stroke-[3]" />}
+                      {/* Ações da Ficha: Excluir e Checkbox */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleExcluirFichaModal(e, treino.id, treino.nome)}
+                          className="size-8 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-500/10 flex items-center justify-center transition-colors cursor-pointer"
+                          title={`Excluir "${treino.nome}" da biblioteca`}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+
+                        <div
+                          className={`size-6 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                            isChecked
+                              ? 'bg-amber-500 border-amber-500 text-neutral-950'
+                              : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900'
+                          }`}
+                        >
+                          {isChecked && <CheckCircle2 className="size-4 stroke-[3]" />}
+                        </div>
                       </div>
                     </div>
                   );

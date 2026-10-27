@@ -32,7 +32,7 @@ interface TreinosPageProps {
   treinos: Treino[];
   exercicios: Exercicio[];
   pastas: PastaExercicio[];
-  onAddTreino: (novo: Omit<Treino, 'id'>) => Promise<void>;
+  onAddTreino: (novo: Omit<Treino, 'id'>) => Promise<Treino | void>;
   onUpdateTreino: (id: string, patch: Partial<Treino>) => Promise<void>;
   onDeleteTreino: (id: string) => Promise<void>;
   onDuplicateTreino: (treino: Treino) => Promise<void>;
