@@ -14,6 +14,7 @@ import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
 import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
+import { decodificarConvite } from '@/lib/convite';
 import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
@@ -198,7 +199,12 @@ function AppContent() {
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return window.location.pathname.startsWith('/app') || params.has('alunoId');
+      return (
+        window.location.pathname.startsWith('/app') ||
+        params.has('alunoId') ||
+        params.has('c') ||
+        params.has('convite')
+      );
     }
     return false;
   });
@@ -316,15 +322,35 @@ function AppContent() {
 
   // Gestão de alunos local com sincronização automática
   const [alunos, setAlunos] = useState<Aluno[]>(() => {
+    let listaAtual = ALUNOS_INICIAIS;
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('giano_alunos_db');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          listaAtual = JSON.parse(saved);
         } catch {}
       }
     }
-    return ALUNOS_INICIAIS;
+    // Sincroniza aluno vindo pelo link de convite (token 'c' ou 'convite')
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('c') || params.get('convite');
+      if (token) {
+        const payload = decodificarConvite(token);
+        if (payload?.aluno) {
+          const idx = listaAtual.findIndex((a) => a.id === payload.aluno.id);
+          if (idx >= 0) {
+            listaAtual[idx] = { ...listaAtual[idx], ...payload.aluno };
+          } else {
+            listaAtual = [payload.aluno, ...listaAtual];
+          }
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('giano_alunos_db', JSON.stringify(listaAtual));
+          }
+        }
+      }
+    }
+    return listaAtual;
   });
 
   // Salva no localStorage a cada alteração
@@ -492,15 +518,34 @@ function AppContent() {
 
   // Gestão da biblioteca de Treinos (persiste no localStorage)
   const [treinos, setTreinos] = useState<Treino[]>(() => {
+    let listaAtual = TREINOS_INICIAIS;
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('giano_treinos_db_v1');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          listaAtual = JSON.parse(saved);
         } catch {}
       }
     }
-    return TREINOS_INICIAIS;
+    // Sincroniza eventuais treinos customizados trazidos no convite
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('c') || params.get('convite');
+      if (token) {
+        const payload = decodificarConvite(token);
+        if (payload?.treinos && payload.treinos.length > 0) {
+          payload.treinos.forEach((tr) => {
+            if (!listaAtual.some((t) => t.id === tr.id)) {
+              listaAtual.push(tr);
+            }
+          });
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('giano_treinos_db_v1', JSON.stringify(listaAtual));
+          }
+        }
+      }
+    }
+    return listaAtual;
   });
 
   useEffect(() => {
@@ -538,26 +583,26 @@ function AppContent() {
     setTreinos((prev) => [duplicado, ...prev]);
   };
 
-  // Se não houver usuário autenticado, exibe a tela de login
-  if (!currentUser) {
-    return (
-      <>
-        <LoginPage
-          alunos={alunos}
-          professores={professores}
-          onLogin={handleLogin}
-        />
-        <Toaster position="top-center" richColors />
-      </>
-    );
-  }
+  // Verifica se é rota direta de aluno (/app) ou convite (?c, ?convite, ?alunoId)
+  const isAcessoAluno = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return (
+        window.location.pathname.startsWith('/app') ||
+        params.has('c') ||
+        params.has('convite') ||
+        params.has('alunoId')
+      );
+    }
+    return false;
+  };
 
-  // Se o usuário logado for Aluno OU estiver no modo mobile de visualização
-  if (currentUser.role === 'aluno' || isMobileView) {
+  // Se for rota de aluno/convite OU se o usuário logado for Aluno OU se o professor estiver no modo mobile de teste
+  if (isAcessoAluno() || (currentUser && (currentUser.role === 'aluno' || isMobileView))) {
     return (
       <div className="relative min-h-screen bg-neutral-950">
-        {/* Botão de retorno ao painel visível EXCLUSIVAMENTE para o Professor testando o app */}
-        {currentUser.role === 'professor' && (
+        {/* Botão de retorno ao painel visível EXCLUSIVAMENTE para o Professor logado testando o app */}
+        {currentUser?.role === 'professor' && (
           <button
             onClick={() => {
               setIsMobileView(false);
@@ -565,7 +610,7 @@ function AppContent() {
                 window.history.pushState({}, '', '/');
               }
             }}
-            className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur"
+            className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur cursor-pointer"
             title="Voltar ao Painel do Personal"
           >
             <Monitor className="size-3.5 text-amber-500" />
@@ -574,7 +619,7 @@ function AppContent() {
         )}
 
         <AppAlunoPage
-          alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
+          alunoIdInicial={currentUser?.role === 'aluno' ? currentUser.id : undefined}
           alunos={alunos}
           treinos={treinos}
           avaliacoes={avaliacoes}
@@ -585,6 +630,20 @@ function AppContent() {
         />
         <Toaster position="top-center" richColors />
       </div>
+    );
+  }
+
+  // Se não houver usuário autenticado no painel, exibe a tela de login
+  if (!currentUser) {
+    return (
+      <>
+        <LoginPage
+          alunos={alunos}
+          professores={professores}
+          onLogin={handleLogin}
+        />
+        <Toaster position="top-center" richColors />
+      </>
     );
   }
 

@@ -41,6 +41,7 @@ import {
 import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
 import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
+import { decodificarConvite } from '@/lib/convite';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -68,12 +69,25 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
 
-  // Detecção de aluno convidado via parâmetro na URL
+  // Detecção de aluno convidado via payload seguro na URL ou parâmetro alunoId
+  const convitePayload = React.useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('c') || params.get('convite');
+    return token ? decodificarConvite(token) : null;
+  }, []);
+
   const alunoIdUrl = typeof window !== 'undefined'
-    ? new URLSearchParams(window.location.search).get('alunoId') || alunoIdInicial
+    ? new URLSearchParams(window.location.search).get('alunoId') || convitePayload?.aluno.id || alunoIdInicial
     : alunoIdInicial;
 
-  const alunoConvidado = alunoIdUrl ? alunos.find((a) => a.id === alunoIdUrl) : null;
+  const alunoConvidado = React.useMemo(() => {
+    if (convitePayload?.aluno) {
+      const emLista = alunos.find((a) => a.id === convitePayload.aluno.id);
+      return emLista || convitePayload.aluno;
+    }
+    return alunoIdUrl ? alunos.find((a) => a.id === alunoIdUrl) : null;
+  }, [convitePayload, alunoIdUrl, alunos]);
 
   // Sessão do aluno: só entra direto se já autenticado previamente para este aluno
   const [alunoLogado, setAlunoLogado] = useState<Aluno | null>(() => {
@@ -142,8 +156,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   // Treinos atribuídos exclusivamente a este aluno
   const treinosDoAluno = React.useMemo(() => {
     if (!alunoLogado?.treinos_ids || alunoLogado.treinos_ids.length === 0) return [];
-    return treinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
-  }, [alunoLogado?.treinos_ids, treinos]);
+    const poolTreinos = [...treinos, ...(convitePayload?.treinos || [])];
+    return poolTreinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
+  }, [alunoLogado?.treinos_ids, treinos, convitePayload?.treinos]);
 
   // Avaliações físicas exclusivas deste aluno
   const avaliacoesDoAluno = React.useMemo(() => {
@@ -316,6 +331,17 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     setAlunoLogado(aluno);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('giano_aluno_ativo_id', aluno.id);
+      try {
+        const salvoAlunos = localStorage.getItem('giano_alunos_db');
+        let lista: Aluno[] = salvoAlunos ? JSON.parse(salvoAlunos) : [];
+        const idx = lista.findIndex((a) => a.id === aluno.id);
+        if (idx >= 0) {
+          lista[idx] = { ...lista[idx], ...aluno };
+        } else {
+          lista = [aluno, ...lista];
+        }
+        localStorage.setItem('giano_alunos_db', JSON.stringify(lista));
+      } catch {}
     }
     setSenhaLogin('');
     setAlunoPendente(null);

@@ -10,7 +10,8 @@ import {
   Loader2, 
   ExternalLink 
 } from 'lucide-react';
-import type { Aluno } from '@/lib/types';
+import type { Aluno, Treino } from '@/lib/types';
+import { gerarLinkConvite } from '@/lib/convite';
 import { toast } from 'sonner';
 
 export type StatusEnvioEmail = 'idle' | 'enviando' | 'enviado' | 'simulado' | 'erro';
@@ -22,6 +23,7 @@ type ModalConviteAlunoProps = {
   statusEmail?: StatusEnvioEmail;
   mensagemEmail?: string;
   onReenviarEmail?: () => void;
+  treinos?: Treino[];
 };
 
 export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
@@ -31,13 +33,14 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
   statusEmail = 'idle',
   mensagemEmail,
   onReenviarEmail,
+  treinos = [],
 }) => {
   const [copiado, setCopiado] = useState(false);
 
   if (!isOpen || !aluno) return null;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
-  const linkConvite = `${origin}/app?alunoId=${aluno.id}`;
+  const linkConvite = gerarLinkConvite(origin, aluno, treinos);
   const primeiroNome = aluno.nome.split(' ')[0] || aluno.nome;
 
   const handleCopiarLink = async () => {

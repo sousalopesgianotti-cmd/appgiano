@@ -22,6 +22,7 @@ import type { Aluno, Treino } from '@/lib/types';
 import { ViewModeToggle } from '@/components/common/ViewModeToggle';
 import { ModalConviteAluno, type StatusEnvioEmail } from '@/components/common/ModalConviteAluno';
 import { enviarEmailConviteAluno } from '@/lib/emailService';
+import { gerarLinkConvite } from '@/lib/convite';
 import { toast } from 'sonner';
 
 type ClientesPageProps = {
@@ -137,7 +138,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
     setStatusEmail('enviando');
     setMensagemEmail('');
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
-    const linkAcesso = `${origin}/app?alunoId=${aluno.id}`;
+    const linkAcesso = gerarLinkConvite(origin, aluno, treinos);
 
     try {
       const res = await enviarEmailConviteAluno({
@@ -263,7 +264,8 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
 
   const copiarLinkApp = (alunoId: string, nome: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
-    const link = `${origin}/app?alunoId=${alunoId}`;
+    const aluno = alunos.find((a) => a.id === alunoId);
+    const link = aluno ? gerarLinkConvite(origin, aluno, treinos) : `${origin}/app?alunoId=${alunoId}`;
     navigator.clipboard.writeText(link);
     toast.success(`Link exclusivo de ${nome.split(' ')[0]} copiado! Envie no WhatsApp dele.`);
   };
@@ -710,6 +712,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
         statusEmail={statusEmail}
         mensagemEmail={mensagemEmail}
         onReenviarEmail={alunoConvite ? () => dispararEmailConvite(alunoConvite) : undefined}
+        treinos={treinos}
       />
 
       {/* MODAL DE PRESCRIÇÃO DE TREINOS DO ALUNO */}
