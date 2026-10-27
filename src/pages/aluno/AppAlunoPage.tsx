@@ -77,6 +77,16 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
 
   // Sessão do aluno: só entra direto se já autenticado previamente para este aluno
   const [alunoLogado, setAlunoLogado] = useState<Aluno | null>(() => {
+    if (alunoIdInicial) {
+      const matchInicial = alunos.find((a) => a.id === alunoIdInicial);
+      if (matchInicial) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('giano_aluno_ativo_id', matchInicial.id);
+        }
+        return matchInicial;
+      }
+    }
+
     const salvo = typeof localStorage !== 'undefined' ? localStorage.getItem('giano_aluno_ativo_id') : null;
     if (alunoIdUrl) {
       if (salvo && salvo === alunoIdUrl) {
@@ -91,6 +101,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     }
     return null;
   });
+
+  // Atualiza alunoLogado caso alunoIdInicial mude
+  useEffect(() => {
+    if (alunoIdInicial) {
+      const match = alunos.find((a) => a.id === alunoIdInicial);
+      if (match) {
+        setAlunoLogado(match);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('giano_aluno_ativo_id', match.id);
+        }
+      }
+    }
+  }, [alunoIdInicial, alunos]);
 
   // Estados de Login e Convite
   const [identificadorLogin, setIdentificadorLogin] = useState('');

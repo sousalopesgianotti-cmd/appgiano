@@ -3,9 +3,12 @@ import { Mail, Lock, Eye, EyeOff, Sparkles, User, Dumbbell, Smartphone, Sun, Moo
 import { Logo } from '@/components/common/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
+import type { Aluno, Professor } from '@/lib/types';
 import { toast } from 'sonner';
 
 interface LoginPageProps {
+  alunos?: Aluno[];
+  professores?: Professor[];
   onLogin: (credentials: { email: string; role: 'professor' | 'aluno'; nome: string; id: string }) => void;
 }
 
@@ -57,7 +60,7 @@ const SLIDES_INSPIRADORES: SlideInspirador[] = [
   },
 ];
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores = [], onLogin }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
 
@@ -124,26 +127,79 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setTimeout(() => {
       setCarregando(false);
       const emailLimpo = usuario.trim().toLowerCase();
+      const digits = emailLimpo.replace(/\D/g, '');
 
-      // Identificação inteligente de perfil
-      if (emailLimpo.includes('murillo') || emailLimpo.includes('aluno')) {
-        toast.success('Bem-vindo, Murillo! Acessando app do aluno...');
+      // 1. Identificação de ALUNO: busca na lista de alunos cadastrados
+      const alunoMatch = alunos.find((a) => {
+        if (a.email.toLowerCase() === emailLimpo) return true;
+        const telDigits = a.telefone.replace(/\D/g, '');
+        if (digits && telDigits.endsWith(digits)) return true;
+        return false;
+      });
+
+      if (alunoMatch) {
+        if (alunoMatch.ativo === false) {
+          toast.error('Seu acesso está pausado. Fale com seu personal trainer.');
+          return;
+        }
+
+        const telDigits = alunoMatch.telefone.replace(/\D/g, '');
+        const senhaEsperada = (alunoMatch.senha && alunoMatch.senha.trim())
+          ? alunoMatch.senha.trim()
+          : (telDigits.slice(-4) || '1234');
+
+        if (senha.trim() !== senhaEsperada) {
+          toast.error('Senha incorreta. Digite a senha cadastrada com seu personal.');
+          return;
+        }
+
+        toast.success(`Bem-vindo(a), ${alunoMatch.nome.split(' ')[0]}! Acessando app do aluno...`);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('giano_aluno_ativo_id', alunoMatch.id);
+        }
         onLogin({
-          id: '7132f4da-920a-4bb0-9db2-ab6af05c5d7a',
-          nome: 'Murillo Moreira',
-          email: 'murillofaixapreta@gmail.com',
+          id: alunoMatch.id,
+          nome: alunoMatch.nome,
+          email: alunoMatch.email,
           role: 'aluno',
         });
-      } else {
-        toast.success('Bem-vindo, André! Acessando painel do Personal...');
-        onLogin({
+        return;
+      }
+
+      // 2. Identificação de PROFESSOR: busca na lista de professores ou no admin André Gianotti
+      const professorMatch = professores.find((p) => {
+        if (p.email.toLowerCase() === emailLimpo) return true;
+        const telDigits = p.telefone.replace(/\D/g, '');
+        if (digits && telDigits.endsWith(digits)) return true;
+        return false;
+      });
+
+      const isAndre = emailLimpo === 'sousalopesgianotti@gmail.com' ||
+        emailLimpo.includes('gianotti') ||
+        emailLimpo === 'andre@giano.com.br' ||
+        emailLimpo === 'admin' ||
+        emailLimpo === 'professor';
+
+      if (professorMatch || isAndre) {
+        const prof = professorMatch || {
           id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
           nome: 'André Gianotti',
-          email: emailLimpo.includes('@') ? emailLimpo : 'andre@giano.com.br',
+          email: 'sousalopesgianotti@gmail.com',
+        };
+
+        toast.success(`Bem-vindo, ${prof.nome.split(' ')[0]}! Acessando painel de gestão...`);
+        onLogin({
+          id: prof.id,
+          nome: prof.nome,
+          email: prof.email,
           role: 'professor',
         });
+        return;
       }
-    }, 600);
+
+      // 3. Credenciais inválidas
+      toast.error('Usuário não encontrado. Verifique seu e-mail ou WhatsApp digitado.');
+    }, 400);
   };
 
   const loginComoPersonalDemo = () => {
@@ -161,14 +217,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   const loginComoAlunoDemo = () => {
-    setUsuario('murillofaixapreta@gmail.com');
-    setSenha('6692');
-    toast.success('Entrando como Aluno (Murillo Moreira)...');
+    const alunoAlvo = alunos[0] || {
+      id: '7132f4da-920a-4bb0-9db2-ab6af05c5d7a',
+      nome: 'Murillo Moreira',
+      email: 'murillofaixapreta@gmail.com',
+    };
+    setUsuario(alunoAlvo.email);
+    setSenha('••••');
+    toast.success(`Entrando como Aluno (${alunoAlvo.nome.split(' ')[0]})...`);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_aluno_ativo_id', alunoAlvo.id);
+    }
     setTimeout(() => {
       onLogin({
-        id: '7132f4da-920a-4bb0-9db2-ab6af05c5d7a',
-        nome: 'Murillo Moreira',
-        email: 'murillofaixapreta@gmail.com',
+        id: alunoAlvo.id,
+        nome: alunoAlvo.nome,
+        email: alunoAlvo.email,
         role: 'aluno',
       });
     }, 400);

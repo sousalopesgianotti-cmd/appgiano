@@ -343,6 +343,9 @@ function AppContent() {
     setUserRole(session.role);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('giano_auth_session', JSON.stringify(session));
+      if (session.role === 'aluno') {
+        localStorage.setItem('giano_aluno_ativo_id', session.id);
+      }
     }
     if (session.role === 'aluno') {
       setIsMobileView(true);
@@ -598,30 +601,36 @@ function AppContent() {
   if (!currentUser) {
     return (
       <>
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage
+          alunos={alunos}
+          professores={professores}
+          onLogin={handleLogin}
+        />
         <Toaster position="top-center" richColors />
       </>
     );
   }
 
-  // Se estiver na rota do aluno (/app)
-  if (isMobileView) {
+  // Se o usuário logado for Aluno OU estiver no modo mobile de visualização
+  if (currentUser.role === 'aluno' || isMobileView) {
     return (
       <div className="relative min-h-screen bg-neutral-950">
-        {/* Botão de alternância flutuante de demonstração */}
-        <button
-          onClick={() => {
-            setIsMobileView(false);
-            if (typeof window !== 'undefined' && window.history) {
-              window.history.pushState({}, '', '/');
-            }
-          }}
-          className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur"
-          title="Voltar ao Painel do Personal"
-        >
-          <Monitor className="size-3.5 text-amber-500" />
-          <span>Painel Personal</span>
-        </button>
+        {/* Botão de retorno ao painel visível EXCLUSIVAMENTE para o Professor testando o app */}
+        {currentUser.role === 'professor' && (
+          <button
+            onClick={() => {
+              setIsMobileView(false);
+              if (typeof window !== 'undefined' && window.history) {
+                window.history.pushState({}, '', '/');
+              }
+            }}
+            className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-700 text-xs font-bold text-neutral-300 hover:text-white shadow-xl backdrop-blur"
+            title="Voltar ao Painel do Personal"
+          >
+            <Monitor className="size-3.5 text-amber-500" />
+            <span>Painel Personal</span>
+          </button>
+        )}
 
         <AppAlunoPage
           alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
