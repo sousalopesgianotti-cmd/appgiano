@@ -13,7 +13,7 @@ import { PlanosPage } from '@/pages/admin/PlanosPage';
 import { ExerciciosPage } from '@/pages/professor/ExerciciosPage';
 import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
-import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio } from '@/lib/types';
+import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
 import { Monitor } from 'lucide-react';
 
 // Dados iniciais espelhados nas referências visuais aprovadas pelo usuário
@@ -31,6 +31,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     ativo: true,
     app_liberado: true,
     senha: "6692",
+    treinos_ids: [],
   },
   {
     id: "a1b2c3d4-0001-4000-8000-000000000001",
@@ -44,6 +45,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     dia_vencimento: 5,
     ativo: true,
     app_liberado: true,
+    treinos_ids: ["tr_peito_triceps_1"],
   },
   {
     id: "a1b2c3d4-0002-4000-8000-000000000002",
@@ -66,8 +68,8 @@ const ALUNOS_INICIAIS: Aluno[] = [
     telefone: "11966665555",
     nascimento: "25/05/1970",
     grupo: "Condicionamento",
-    valor_mensalidade: 150,
-    dia_vencimento: 10,
+    valor_mensalidade: 0,
+    dia_vencimento: 0,
     ativo: true,
     app_liberado: true,
   },
@@ -388,14 +390,16 @@ function AppContent() {
     }
   }, [alunos]);
 
-  const handleAddAluno = async (novo: Omit<Aluno, 'id' | 'professor_id'>) => {
+  const handleAddAluno = async (novo: Omit<Aluno, 'id' | 'professor_id'>): Promise<Aluno> => {
     const alunoCriado: Aluno = {
       ...novo,
       id: crypto.randomUUID(),
       professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
+      treinos_ids: [],
       created_at: new Date().toISOString(),
     };
     setAlunos((prev) => [alunoCriado, ...prev]);
+    return alunoCriado;
   };
 
   const handleUpdateAluno = async (id: string, patch: Partial<Aluno>) => {
@@ -404,8 +408,57 @@ function AppContent() {
     );
   };
 
+  // Gestão de Avaliações Físicas (persiste no localStorage)
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoFisica[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_avaliacoes_db');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_avaliacoes_db', JSON.stringify(avaliacoes));
+    }
+  }, [avaliacoes]);
+
+  // Gestão de Histórico e Execuções de Treino por Aluno (persiste no localStorage)
+  const [execucoes, setExecucoes] = useState<TreinoExecucao[]>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('giano_execucoes_db');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('giano_execucoes_db', JSON.stringify(execucoes));
+    }
+  }, [execucoes]);
+
+  const handleSalvarExecucao = async (nova: Omit<TreinoExecucao, 'id'>) => {
+    const item: TreinoExecucao = {
+      ...nova,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    setExecucoes((prev) => [item, ...prev]);
+  };
+
   const handleDeleteAluno = async (id: string) => {
     setAlunos((prev) => prev.filter((a) => a.id !== id));
+    setAvaliacoes((prev) => prev.filter((av) => av.aluno_id !== id));
+    setExecucoes((prev) => prev.filter((ex) => ex.aluno_id !== id));
   };
 
   // Gestão das Pastas Musculares
@@ -574,6 +627,10 @@ function AppContent() {
           alunoIdInicial={currentUser.role === 'aluno' ? currentUser.id : undefined}
           alunos={alunos}
           treinos={treinos}
+          avaliacoes={avaliacoes}
+          execucoes={execucoes}
+          onSalvarExecucao={handleSalvarExecucao}
+          onUpdateAluno={handleUpdateAluno}
           onLogout={handleLogout}
         />
         <Toaster position="top-center" richColors />
@@ -631,14 +688,15 @@ function AppContent() {
           {currentTab === 'clientes' && (
             <ClientesPage
               alunos={alunos}
+              treinos={treinos}
               limiteAlunos={viewMode === 'owner' ? 9999 : 50}
               onAddAluno={handleAddAluno}
               onUpdateAluno={handleUpdateAluno}
               onDeleteAluno={handleDeleteAluno}
-              onSelectAlunoTreinos={() => {
+              onSelectAlunoTreinos={(aluno) => {
                 setIsMobileView(true);
                 if (typeof window !== 'undefined' && window.history) {
-                  window.history.pushState({}, '', '/app');
+                  window.history.pushState({}, '', `/app?alunoId=${aluno.id}`);
                 }
               }}
             />

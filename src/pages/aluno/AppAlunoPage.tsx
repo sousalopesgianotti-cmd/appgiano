@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
-import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino } from '@/lib/types';
+import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -48,6 +48,8 @@ type AppAlunoPageProps = {
   alunoIdInicial?: string;
   alunos: Aluno[];
   treinos: Treino[];
+  avaliacoes?: AvaliacaoFisica[];
+  execucoes?: TreinoExecucao[];
   onSalvarExecucao?: (execucao: Omit<TreinoExecucao, 'id'>) => Promise<void>;
   onUpdateAluno?: (id: string, patch: Partial<Aluno>) => Promise<void>;
   onLogout?: () => void;
@@ -57,6 +59,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   alunoIdInicial,
   alunos,
   treinos,
+  avaliacoes = [],
+  execucoes = [],
   onSalvarExecucao,
   onUpdateAluno,
   onLogout,
@@ -117,6 +121,71 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     if (!alunoLogado?.treinos_ids || alunoLogado.treinos_ids.length === 0) return [];
     return treinos.filter((t) => alunoLogado.treinos_ids?.includes(t.id));
   }, [alunoLogado?.treinos_ids, treinos]);
+
+  // Avaliações físicas exclusivas deste aluno
+  const avaliacoesDoAluno = React.useMemo(() => {
+    if (!alunoLogado?.id) return [];
+    return avaliacoes.filter((a) => a.aluno_id === alunoLogado.id);
+  }, [avaliacoes, alunoLogado?.id]);
+
+  const ultimaAvaliacao = avaliacoesDoAluno[avaliacoesDoAluno.length - 1] || null;
+
+  // Histórico de execuções de treino exclusivas deste aluno
+  const execucoesDoAluno = React.useMemo(() => {
+    if (!alunoLogado?.id) return [];
+    return execucoes.filter((e) => e.aluno_id === alunoLogado.id);
+  }, [execucoes, alunoLogado?.id]);
+
+  // Cálculos dinâmicos e reais de frequência para o mês atual
+  const estatisticasCalendario = React.useMemo(() => {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth();
+
+    const diasDoMesSet = new Set<number>();
+    execucoesDoAluno.forEach((ex) => {
+      if (!ex.data) return;
+      const [anoStr, mesStr, diaStr] = ex.data.split('-');
+      const ano = parseInt(anoStr, 10);
+      const mes = parseInt(mesStr, 10) - 1;
+      const dia = parseInt(diaStr, 10);
+      if (ano === anoAtual && mes === mesAtual) {
+        diasDoMesSet.add(dia);
+      }
+    });
+
+    const totalDiasNoMes = diasDoMesSet.size;
+
+    let sequencia = 0;
+    if (totalDiasNoMes > 0) {
+      const hojeDia = hoje.getDate();
+      let diaChecagem = diasDoMesSet.has(hojeDia) ? hojeDia : hojeDia - 1;
+      while (diaChecagem > 0 && diasDoMesSet.has(diaChecagem)) {
+        sequencia++;
+        diaChecagem--;
+      }
+    }
+
+    // Treinos concluídos nesta semana
+    const diaSemanaHoje = hoje.getDay();
+    const offsetSegunda = (diaSemanaHoje + 6) % 7;
+    const inicioSemana = new Date(hoje);
+    inicioSemana.setDate(hoje.getDate() - offsetSegunda);
+    inicioSemana.setHours(0, 0, 0, 0);
+
+    const treinosSemana = execucoesDoAluno.filter((ex) => {
+      if (!ex.data) return false;
+      const dataEx = new Date(`${ex.data}T00:00:00`);
+      return dataEx >= inicioSemana && dataEx <= hoje;
+    }).length;
+
+    return {
+      totalDiasNoMes,
+      sequencia,
+      diasDoMesSet,
+      treinosSemana,
+    };
+  }, [execucoesDoAluno]);
 
   // Estados de Treino
   const [menuAberto, setMenuAberto] = useState(false);
@@ -774,7 +843,11 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       <h4 className="font-black text-sm text-white group-hover:text-amber-500 transition-colors">
                         Calendário
                       </h4>
-                      <p className="text-[11px] text-neutral-400">Frequência e histórico</p>
+                      <p className="text-[11px] text-neutral-400">
+                        {estatisticasCalendario.totalDiasNoMes > 0 
+                          ? `${estatisticasCalendario.totalDiasNoMes} ${estatisticasCalendario.totalDiasNoMes === 1 ? 'treino' : 'treinos'} no mês` 
+                          : '0 treinos este mês'}
+                      </p>
                     </div>
                   </div>
 
@@ -789,7 +862,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       <h4 className="font-black text-sm text-white group-hover:text-amber-500 transition-colors">
                         Avaliações
                       </h4>
-                      <p className="text-[11px] text-neutral-400">Medidas e evolução</p>
+                      <p className="text-[11px] text-neutral-400">
+                        {ultimaAvaliacao ? `${ultimaAvaliacao.peso} kg • ${ultimaAvaliacao.altura} m` : 'Aguardando avaliação'}
+                      </p>
                     </div>
                   </div>
 
@@ -804,7 +879,11 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       <h4 className="font-black text-sm text-white group-hover:text-amber-500 transition-colors">
                         Metas & Métricas
                       </h4>
-                      <p className="text-[11px] text-neutral-400">Objetivos e consistência</p>
+                      <p className="text-[11px] text-neutral-400">
+                        {execucoesDoAluno.length > 0 
+                          ? `${estatisticasCalendario.treinosSemana} na semana` 
+                          : 'Definir com personal'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -824,7 +903,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       Meu Plano & Assinatura
                     </h4>
                     <p className="text-xs text-neutral-400">
-                      R$ {alunoLogado.valor_mensalidade || 150},00/mês • Venc. dia {alunoLogado.dia_vencimento || 10}
+                      {alunoLogado.valor_mensalidade && alunoLogado.valor_mensalidade > 0
+                        ? `R$ ${alunoLogado.valor_mensalidade},00/mês • Venc. dia ${alunoLogado.dia_vencimento || 10}`
+                        : 'Plano em definição pelo personal • Sem cobrança ativa'}
                     </p>
                   </div>
                 </div>
@@ -1042,113 +1123,133 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
           {/* ======================================================== */}
           {/* ABA 3: CALENDÁRIO (FREQUÊNCIA E HISTÓRICO DE TREINOS)    */}
           {/* ======================================================== */}
-          {abaAtiva === 'calendario' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setAbaAtiva('inicio')}
-                  className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
-                  title="Voltar ao Início"
-                >
-                  <ArrowLeft className="size-4" />
-                </button>
-                <div>
-                  <h2 className="text-xl font-black text-white">Calendário de Treinos</h2>
-                  <p className="text-xs text-neutral-400">Frequência e histórico de atividade</p>
-                </div>
-              </div>
+          {abaAtiva === 'calendario' && (() => {
+            const dataHoje = new Date();
+            const anoHoje = dataHoje.getFullYear();
+            const mesHoje = dataHoje.getMonth();
+            const diaHojeNum = dataHoje.getDate();
+            const nomeMes = dataHoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            const diasNoMesTotal = new Date(anoHoje, mesHoje + 1, 0).getDate();
+            const primeiroDiaSemana = new Date(anoHoje, mesHoje, 1).getDay();
+            const consistenciaPct = estatisticasCalendario.totalDiasNoMes > 0
+              ? Math.min(100, Math.round((estatisticasCalendario.totalDiasNoMes / Math.max(1, Math.round((diaHojeNum / 7) * 4))) * 100))
+              : 0;
 
-              {/* Estatísticas de Frequência */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">No Mês</span>
-                  <span className="text-lg font-black text-amber-500">12 dias</span>
-                </div>
-                <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">Sequência</span>
-                  <span className="text-lg font-black text-emerald-400">4 dias 🔥</span>
-                </div>
-                <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold text-neutral-400 block uppercase">Consistência</span>
-                  <span className="text-lg font-black text-white">85%</span>
-                </div>
-              </div>
-
-              {/* Calendário Mensal Estilizado */}
-              <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
-                  <h4 className="font-black text-sm text-white">Outubro de 2026</h4>
-                  <span className="text-xs text-amber-500 font-bold">Hoje: dia 27</span>
-                </div>
-
-                {/* Dias da Semana */}
-                <div className="grid grid-cols-7 text-center text-[10px] font-black uppercase text-neutral-500">
-                  <span>D</span>
-                  <span>S</span>
-                  <span>T</span>
-                  <span>Q</span>
-                  <span>Q</span>
-                  <span>S</span>
-                  <span>S</span>
-                </div>
-
-                {/* Grid de Dias */}
-                <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold">
-                  {/* Dias vazios início do mês */}
-                  <span className="py-2 text-neutral-700">27</span>
-                  <span className="py-2 text-neutral-700">28</span>
-                  <span className="py-2 text-neutral-700">29</span>
-                  <span className="py-2 text-neutral-700">30</span>
-                  
-                  {/* Dias 1 a 31 */}
-                  {Array.from({ length: 31 }).map((_, i) => {
-                    const dia = i + 1;
-                    const treinado = [2, 5, 7, 9, 12, 14, 16, 19, 21, 23, 26, 27].includes(dia);
-                    const isHoje = dia === 27;
-
-                    return (
-                      <div
-                        key={dia}
-                        className={`py-2 rounded-xl flex flex-col items-center justify-center relative transition-all ${
-                          isHoje
-                            ? 'bg-amber-500 text-neutral-950 font-black shadow-md shadow-amber-500/20'
-                            : treinado
-                            ? 'bg-neutral-800 text-amber-400 border border-amber-500/30'
-                            : 'text-neutral-400 hover:bg-neutral-850'
-                        }`}
-                      >
-                        <span>{dia}</span>
-                        {treinado && !isHoje && (
-                          <span className="size-1 rounded-full bg-amber-400 mt-0.5" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Rotina Semanal Planejada */}
-              <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
-                <h4 className="font-bold text-xs text-neutral-400 uppercase tracking-wider">
-                  Sua Programação Recomendada
-                </h4>
-                <div className="space-y-2">
-                  <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800 flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">Segunda-feira</span>
-                    <span className="text-amber-500 font-semibold">Peito & Tríceps</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800 flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">Quarta-feira</span>
-                    <span className="text-amber-500 font-semibold">Costas & Bíceps</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800 flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">Sexta-feira</span>
-                    <span className="text-amber-500 font-semibold">Pernas Completo</span>
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setAbaAtiva('inicio')}
+                    className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
+                    title="Voltar ao Início"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-white">Calendário de Treinos</h2>
+                    <p className="text-xs text-neutral-400">Frequência e histórico de atividade</p>
                   </div>
                 </div>
+
+                {/* Estatísticas de Frequência Dinâmicas */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold text-neutral-400 block uppercase">No Mês</span>
+                    <span className="text-lg font-black text-amber-500">
+                      {estatisticasCalendario.totalDiasNoMes} {estatisticasCalendario.totalDiasNoMes === 1 ? 'dia' : 'dias'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold text-neutral-400 block uppercase">Sequência</span>
+                    <span className="text-lg font-black text-emerald-400">
+                      {estatisticasCalendario.sequencia} {estatisticasCalendario.sequencia === 1 ? 'dia' : 'dias'} {estatisticasCalendario.sequencia > 0 ? '🔥' : '🌱'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold text-neutral-400 block uppercase">Consistência</span>
+                    <span className="text-lg font-black text-white">{consistenciaPct}%</span>
+                  </div>
+                </div>
+
+                {/* Calendário Mensal Estilizado Dinâmico */}
+                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
+                    <h4 className="font-black text-sm text-white capitalize">{nomeMes}</h4>
+                    <span className="text-xs text-amber-500 font-bold">Hoje: dia {diaHojeNum}</span>
+                  </div>
+
+                  {/* Dias da Semana */}
+                  <div className="grid grid-cols-7 text-center text-[10px] font-black uppercase text-neutral-500">
+                    <span>D</span>
+                    <span>S</span>
+                    <span>T</span>
+                    <span>Q</span>
+                    <span>Q</span>
+                    <span>S</span>
+                    <span>S</span>
+                  </div>
+
+                  {/* Grid de Dias */}
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold">
+                    {/* Espaços vazios antes do dia 1 */}
+                    {Array.from({ length: primeiroDiaSemana }).map((_, i) => (
+                      <span key={`vazio-${i}`} className="py-2 text-neutral-800/40">·</span>
+                    ))}
+
+                    {/* Dias 1 ao último do mês */}
+                    {Array.from({ length: diasNoMesTotal }).map((_, i) => {
+                      const dia = i + 1;
+                      const treinado = estatisticasCalendario.diasDoMesSet.has(dia);
+                      const isHoje = dia === diaHojeNum;
+
+                      return (
+                        <div
+                          key={dia}
+                          className={`py-2 rounded-xl flex flex-col items-center justify-center relative transition-all ${
+                            isHoje
+                              ? 'bg-amber-500 text-neutral-950 font-black shadow-md shadow-amber-500/20'
+                              : treinado
+                              ? 'bg-neutral-800 text-amber-400 border border-amber-500/30'
+                              : 'text-neutral-400 hover:bg-neutral-850'
+                          }`}
+                        >
+                          <span>{dia}</span>
+                          {treinado && !isHoje && (
+                            <span className="size-1 rounded-full bg-amber-400 mt-0.5" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Status de Atividade / Fichas do Aluno */}
+                {estatisticasCalendario.totalDiasNoMes === 0 ? (
+                  <div className="p-5 rounded-3xl bg-neutral-900 border border-neutral-850 text-center space-y-2">
+                    <CalendarIcon className="size-8 mx-auto text-neutral-600" />
+                    <h4 className="text-sm font-bold text-white">Nenhum treino realizado ainda</h4>
+                    <p className="text-xs text-neutral-400 max-w-xs mx-auto leading-relaxed">
+                      Ao concluir seus treinos na aba <strong>Treinos</strong>, os dias serão marcados automaticamente no calendário para você acompanhar sua frequência.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
+                    <h4 className="font-bold text-xs text-neutral-400 uppercase tracking-wider">
+                      Suas Fichas Ativas
+                    </h4>
+                    <div className="space-y-2">
+                      {treinosDoAluno.map((tr) => (
+                        <div key={tr.id} className="p-2.5 rounded-xl bg-neutral-950/60 border border-neutral-800 flex items-center justify-between text-xs">
+                          <span className="font-bold text-white">{tr.nome}</span>
+                          <span className="text-amber-500 font-semibold">{tr.exercicios.length} exercícios</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ======================================================== */}
           {/* ABA 4: AVALIAÇÕES FÍSICAS (MEDIDAS E BIOIMPEDÂNCIA)       */}
@@ -1176,7 +1277,15 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     <Scale className="size-4 text-amber-500" />
                     <span>Peso Atual</span>
                   </div>
-                  <p className="text-xl font-black text-white">74.5 <span className="text-xs font-normal text-neutral-400">kg</span></p>
+                  <p className="text-xl font-black text-white">
+                    {ultimaAvaliacao?.peso ? (
+                      <>
+                        {ultimaAvaliacao.peso} <span className="text-xs font-normal text-neutral-400">kg</span>
+                      </>
+                    ) : (
+                      <span className="text-neutral-500 text-base font-bold">-- kg</span>
+                    )}
+                  </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-1">
@@ -1184,7 +1293,15 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     <Ruler className="size-4 text-blue-400" />
                     <span>Altura</span>
                   </div>
-                  <p className="text-xl font-black text-white">1.76 <span className="text-xs font-normal text-neutral-400">m</span></p>
+                  <p className="text-xl font-black text-white">
+                    {ultimaAvaliacao?.altura ? (
+                      <>
+                        {ultimaAvaliacao.altura} <span className="text-xs font-normal text-neutral-400">m</span>
+                      </>
+                    ) : (
+                      <span className="text-neutral-500 text-base font-bold">-- m</span>
+                    )}
+                  </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-1">
@@ -1192,7 +1309,22 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     <Activity className="size-4 text-purple-400" />
                     <span>IMC</span>
                   </div>
-                  <p className="text-xl font-black text-white">24.0 <span className="text-xs font-normal text-emerald-400">(Normal)</span></p>
+                  <p className="text-xl font-black text-white">
+                    {(() => {
+                      const imcCalc = ultimaAvaliacao?.imc || (ultimaAvaliacao?.peso && ultimaAvaliacao?.altura ? ultimaAvaliacao.peso / (ultimaAvaliacao.altura * ultimaAvaliacao.altura) : null);
+                      if (imcCalc) {
+                        return (
+                          <>
+                            {imcCalc.toFixed(1)}{' '}
+                            <span className="text-xs font-normal text-emerald-400">
+                              ({ultimaAvaliacao?.classificacao_imc || 'Normal'})
+                            </span>
+                          </>
+                        );
+                      }
+                      return <span className="text-neutral-500 text-base font-bold">--</span>;
+                    })()}
+                  </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-1">
@@ -1200,68 +1332,70 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     <Flame className="size-4 text-orange-400" />
                     <span>% Gordura</span>
                   </div>
-                  <p className="text-xl font-black text-white">16.2 <span className="text-xs font-normal text-neutral-400">%</span></p>
+                  <p className="text-xl font-black text-white">
+                    {(() => {
+                      const gordura = ultimaAvaliacao?.percentual_gordura ?? ultimaAvaliacao?.gordura_corporal;
+                      if (gordura !== undefined && gordura !== null) {
+                        return (
+                          <>
+                            {gordura} <span className="text-xs font-normal text-neutral-400">%</span>
+                          </>
+                        );
+                      }
+                      return <span className="text-neutral-500 text-base font-bold">-- %</span>;
+                    })()}
+                  </p>
                 </div>
               </div>
 
-              {/* Tabela de Medidas (Perímetros em cm) */}
-              <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
-                  <h4 className="font-black text-sm text-white">Perímetros Corporais</h4>
-                  <span className="text-[10px] text-neutral-400 font-bold uppercase">Última avaliação</span>
-                </div>
+              {/* Tabela de Medidas ou Estado Vazio */}
+              {ultimaAvaliacao ? (
+                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
+                    <h4 className="font-black text-sm text-white">Perímetros Corporais</h4>
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase">
+                      {ultimaAvaliacao.data ? new Date(ultimaAvaliacao.data).toLocaleDateString('pt-BR') : 'Última avaliação'}
+                    </span>
+                  </div>
 
-                <div className="divide-y divide-neutral-850 text-xs">
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Tórax</span>
-                    <span className="font-bold text-white">98.0 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Braço Direito / Esquerdo</span>
-                    <span className="font-bold text-white">36.0 / 35.5 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Cintura</span>
-                    <span className="font-bold text-white">82.0 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Abdômen</span>
-                    <span className="font-bold text-white">84.0 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Quadril</span>
-                    <span className="font-bold text-white">99.0 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Coxa Direita / Esquerda</span>
-                    <span className="font-bold text-white">56.0 / 55.5 cm</span>
-                  </div>
-                  <div className="py-2 flex items-center justify-between">
-                    <span className="text-neutral-400 font-medium">Panturrilha Direita / Esquerda</span>
-                    <span className="font-bold text-white">37.0 / 37.0 cm</span>
+                  <div className="divide-y divide-neutral-850 text-xs">
+                    {Object.entries(ultimaAvaliacao.medidas || {}).map(([chave, valor]) => (
+                      <div key={chave} className="py-2 flex items-center justify-between">
+                        <span className="text-neutral-400 font-medium capitalize">{chave.replace(/_/g, ' ')}</span>
+                        <span className="font-bold text-white">{valor} cm</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-6 rounded-3xl bg-neutral-900 border border-neutral-850 text-center space-y-2.5">
+                  <Scale className="size-8 mx-auto text-neutral-600" />
+                  <h4 className="font-bold text-sm text-white">Aguardando Primeira Avaliação</h4>
+                  <p className="text-xs text-neutral-400 max-w-xs mx-auto leading-relaxed">
+                    Assim que seu personal realizar sua primeira avaliação física e bioimpedância, suas medidas e evolução aparecerão aqui.
+                  </p>
+                </div>
+              )}
 
               {/* Fotos Comparativas */}
               <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
                 <h4 className="font-black text-sm text-white">Fotos de Evolução</h4>
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 space-y-1">
+                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-dashed border-neutral-800 flex flex-col items-center justify-center text-neutral-600 space-y-1">
                     <Camera className="size-5" />
                     <span className="text-[10px] font-bold">Frente</span>
                   </div>
-                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 space-y-1">
+                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-dashed border-neutral-800 flex flex-col items-center justify-center text-neutral-600 space-y-1">
                     <Camera className="size-5" />
                     <span className="text-[10px] font-bold">Lateral</span>
                   </div>
-                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-neutral-800 flex flex-col items-center justify-center text-neutral-500 space-y-1">
+                  <div className="aspect-[3/4] rounded-2xl bg-neutral-950 border border-dashed border-neutral-800 flex flex-col items-center justify-center text-neutral-600 space-y-1">
                     <Camera className="size-5" />
                     <span className="text-[10px] font-bold">Costas</span>
                   </div>
                 </div>
                 <p className="text-[11px] text-neutral-400 text-center">
-                  Novas fotos são adicionadas a cada ciclo de reavaliação física.
+                  Novas fotos são adicionadas a cada ciclo de reavaliação física pelo personal.
                 </p>
               </div>
             </div>
@@ -1270,161 +1404,223 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
           {/* ======================================================== */}
           {/* ABA 5: METAS E MÉTRICAS (METAS & CONSISTÊNCIA)           */}
           {/* ======================================================== */}
-          {abaAtiva === 'metas' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setAbaAtiva('inicio')}
-                  className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
-                  title="Voltar ao Início"
-                >
-                  <ArrowLeft className="size-4" />
-                </button>
-                <div>
-                  <h2 className="text-xl font-black text-white">Metas & Métricas</h2>
-                  <p className="text-xs text-neutral-400">Seus objetivos e acompanhamento de consistência</p>
-                </div>
-              </div>
+          {abaAtiva === 'metas' && (() => {
+            const treinosSemana = estatisticasCalendario.treinosSemana;
+            const metaSemanal = 4;
+            const pctSemana = Math.min(100, Math.round((treinosSemana / metaSemanal) * 100));
 
-              {/* Metas Ativas com Progresso */}
-              <div className="space-y-3">
-                {/* Meta de Peso */}
-                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Target className="size-4.5 text-amber-500" />
-                      <h4 className="font-bold text-sm text-white">Meta de Peso Corporal</h4>
-                    </div>
-                    <span className="text-xs font-black text-amber-500">80%</span>
-                  </div>
-
-                  <div className="w-full h-2 rounded-full bg-neutral-800 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style={{ width: '80%' }} />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400 font-semibold">
-                    <span>Inicial: 78.0 kg</span>
-                    <span className="text-white font-bold">Atual: 74.5 kg</span>
-                    <span>Alvo: 73.0 kg</span>
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setAbaAtiva('inicio')}
+                    className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
+                    title="Voltar ao Início"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-white">Metas & Métricas</h2>
+                    <p className="text-xs text-neutral-400">Seus objetivos e acompanhamento de consistência</p>
                   </div>
                 </div>
 
-                {/* Frequência Semanal */}
-                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Flame className="size-4.5 text-orange-400" />
-                      <h4 className="font-bold text-sm text-white">Frequência Semanal</h4>
+                <div className="space-y-3">
+                  {/* Frequência Semanal Dinâmica */}
+                  <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Flame className="size-4.5 text-orange-400" />
+                        <h4 className="font-bold text-sm text-white">Frequência Semanal</h4>
+                      </div>
+                      <span className="text-xs font-black text-emerald-400">
+                        {treinosSemana} de {metaSemanal} treinos
+                      </span>
                     </div>
-                    <span className="text-xs font-black text-emerald-400">3 de 4 treinos</span>
+
+                    <div className="w-full h-2 rounded-full bg-neutral-800 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all"
+                        style={{ width: `${pctSemana}%` }}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-neutral-400">
+                      {treinosSemana === 0
+                        ? 'Você ainda não realizou treinos esta semana. Acesse a aba Treinos para começar! 💪'
+                        : treinosSemana >= metaSemanal
+                        ? 'Parabéns! Meta semanal concluída com sucesso! 🔥'
+                        : `Faltam ${metaSemanal - treinosSemana} ${metaSemanal - treinosSemana === 1 ? 'treino' : 'treinos'} para bater sua meta semanal de ${metaSemanal} sessões! 💪`}
+                    </p>
                   </div>
 
-                  <div className="w-full h-2 rounded-full bg-neutral-800 overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '75%' }} />
-                  </div>
+                  {/* Meta de Peso Corporal Dinâmica */}
+                  {ultimaAvaliacao?.peso ? (
+                    <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Target className="size-4.5 text-amber-500" />
+                          <h4 className="font-bold text-sm text-white">Meta de Peso Corporal</h4>
+                        </div>
+                        <span className="text-xs font-black text-amber-500">Em acompanhamento</span>
+                      </div>
 
-                  <p className="text-[11px] text-neutral-400">
-                    Falta apenas 1 treino para bater sua meta semanal de 4 sessões! 💪
+                      <div className="flex items-center justify-between text-xs text-neutral-400 font-semibold pt-1">
+                        <span>Peso Atual: <strong className="text-white">{ultimaAvaliacao.peso} kg</strong></span>
+                        <span>Altura: <strong className="text-white">{ultimaAvaliacao.altura} m</strong></span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-5 rounded-3xl bg-neutral-900 border border-neutral-850 text-center space-y-2">
+                      <Target className="size-8 mx-auto text-neutral-600" />
+                      <h4 className="font-bold text-sm text-white">Metas em Elaboração</h4>
+                      <p className="text-xs text-neutral-400 max-w-xs mx-auto leading-relaxed">
+                        Suas metas personalizadas de peso e composição física serão alinhadas com o personal trainer na primeira avaliação.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Hidratação Diária */}
+                  <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="size-4.5 text-blue-400" />
+                        <h4 className="font-bold text-sm text-white">Hidratação Recomendada</h4>
+                      </div>
+                      <span className="text-xs font-black text-blue-400">
+                        {ultimaAvaliacao?.peso
+                          ? `${((ultimaAvaliacao.peso * 35) / 1000).toFixed(1)} L / dia`
+                          : '2.5 L / dia'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-neutral-400 leading-relaxed">
+                      A ingestão diária recomendada (35ml por kg de peso) otimiza a recuperação muscular, a síntese proteica e reduz câimbras.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dica do Personal */}
+                <div className="p-4 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-1 text-center">
+                  <span className="text-xs font-bold text-amber-500">Filosofia GIANO Performance</span>
+                  <p className="text-xs text-neutral-300 italic">
+                    "Você não treina apenas corpos, você constrói autoconfiança."
                   </p>
                 </div>
-
-                {/* Hidratação Diária */}
-                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="size-4.5 text-blue-400" />
-                      <h4 className="font-bold text-sm text-white">Hidratação Recomendada</h4>
-                    </div>
-                    <span className="text-xs font-black text-blue-400">2.5 L / dia</span>
-                  </div>
-
-                  <p className="text-[11px] text-neutral-400 leading-relaxed">
-                    A ingestão hídrica otimiza a recuperação muscular, a síntese proteica e reduz câimbras.
-                  </p>
-                </div>
               </div>
-
-              {/* Dica do Personal */}
-              <div className="p-4 rounded-3xl bg-neutral-900/60 border border-neutral-800 space-y-1 text-center">
-                <span className="text-xs font-bold text-amber-500">Filosofia GIANO Performance</span>
-                <p className="text-xs text-neutral-300 italic">
-                  "Você não treina apenas corpos, você constrói autoconfiança."
-                </p>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ======================================================== */}
           {/* ABA 6: MEU PLANO (MENSALIDADE, VENCIMENTO E ACESSO)      */}
           {/* ======================================================== */}
-          {abaAtiva === 'plano' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setAbaAtiva('inicio')}
-                  className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
-                  title="Voltar ao Início"
-                >
-                  <ArrowLeft className="size-4" />
-                </button>
-                <div>
-                  <h2 className="text-xl font-black text-white">Meu Plano & Assinatura</h2>
-                  <p className="text-xs text-neutral-400">Detalhes da sua consultoria e pagamentos</p>
-                </div>
-              </div>
+          {abaAtiva === 'plano' && (() => {
+            const temPlanoAtivo = Boolean(alunoLogado.valor_mensalidade && alunoLogado.valor_mensalidade > 0);
 
-              {/* Card de Assinatura */}
-              <div className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
-                    Acesso Ativo & Liberado
-                  </span>
-                  <span className="text-xs text-neutral-400 font-bold">Plano Mensal</span>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs text-neutral-400 font-medium">Valor da Mensalidade</span>
-                  <h3 className="text-3xl font-black text-white">
-                    R$ {alunoLogado.valor_mensalidade || 150},00 <span className="text-xs font-normal text-neutral-400">/ mês</span>
-                  </h3>
-                </div>
-
-                <div className="pt-3 border-t border-neutral-800 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-400">Dia de Vencimento</span>
-                    <span className="font-bold text-white">Todo dia {alunoLogado.dia_vencimento || 10}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-400">Grupo / Categoria</span>
-                    <span className="font-bold text-amber-500">{alunoLogado.grupo || 'Consultoria VIP'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-400">Personal Responsável</span>
-                    <span className="font-bold text-white">André Gianotti</span>
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setAbaAtiva('inicio')}
+                    className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white cursor-pointer"
+                    title="Voltar ao Início"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </button>
+                  <div>
+                    <h2 className="text-xl font-black text-white">Meu Plano & Assinatura</h2>
+                    <p className="text-xs text-neutral-400">Detalhes da sua consultoria e pagamentos</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Botão de Envio de Comprovante */}
-              <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
-                <h4 className="font-bold text-sm text-white">Dúvidas Financeiras ou Comprovantes</h4>
-                <p className="text-xs text-neutral-400 leading-relaxed">
-                  Envie seu comprovante de mensalidade ou solicite alterações na sua data de vencimento diretamente ao professor.
-                </p>
-                <a
-                  href={`https://api.whatsapp.com/send?phone=5511999999999&text=${encodeURIComponent(
-                    `Olá, professor André! Gostaria de falar sobre a mensalidade do meu plano no app.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <Phone className="size-3.5 text-amber-500" />
-                  <span>Enviar Comprovante via WhatsApp</span>
-                </a>
+                {/* Card de Assinatura */}
+                {temPlanoAtivo ? (
+                  <div className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 space-y-4 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
+                        Acesso Ativo & Liberado
+                      </span>
+                      <span className="text-xs text-neutral-400 font-bold">Plano Mensal</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-neutral-400 font-medium">Valor da Mensalidade</span>
+                      <h3 className="text-3xl font-black text-white">
+                        R$ {alunoLogado.valor_mensalidade},00 <span className="text-xs font-normal text-neutral-400">/ mês</span>
+                      </h3>
+                    </div>
+
+                    <div className="pt-3 border-t border-neutral-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Dia de Vencimento</span>
+                        <span className="font-bold text-white">
+                          {alunoLogado.dia_vencimento ? `Todo dia ${alunoLogado.dia_vencimento}` : 'A combinar'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Grupo / Categoria</span>
+                        <span className="font-bold text-amber-500">{alunoLogado.grupo || 'Consultoria VIP'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Personal Responsável</span>
+                        <span className="font-bold text-white">André Gianotti</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 space-y-4 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black">
+                        Plano em Definição
+                      </span>
+                      <span className="text-xs text-neutral-500 font-bold">Sem cobrança ativa</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-neutral-400 font-medium">Valor da Mensalidade</span>
+                      <h3 className="text-2xl font-black text-neutral-300">
+                        A combinar com o personal
+                      </h3>
+                    </div>
+
+                    <div className="pt-3 border-t border-neutral-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Dia de Vencimento</span>
+                        <span className="font-bold text-neutral-400">A definir</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Grupo / Categoria</span>
+                        <span className="font-bold text-amber-500">{alunoLogado.grupo || 'Geral'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-neutral-400">Personal Responsável</span>
+                        <span className="font-bold text-white">André Gianotti</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botão de Envio de Comprovante / Contato Financeiro */}
+                <div className="p-4 rounded-3xl bg-neutral-900 border border-neutral-850 space-y-3">
+                  <h4 className="font-bold text-sm text-white">Dúvidas Financeiras ou Plano</h4>
+                  <p className="text-xs text-neutral-400 leading-relaxed">
+                    Envie seu comprovante de mensalidade ou alinhe os detalhes do seu plano diretamente com seu professor.
+                  </p>
+                  <a
+                    href={`https://api.whatsapp.com/send?phone=5511999999999&text=${encodeURIComponent(
+                      `Olá, professor André! Gostaria de falar sobre o meu plano no app.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Phone className="size-3.5 text-amber-500" />
+                    <span>Falar com Personal via WhatsApp</span>
+                  </a>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ======================================================== */}
           {/* ABA 7: CHAT E SUPORTE (COMUNICAÇÃO COM O PERSONAL)       */}

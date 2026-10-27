@@ -130,7 +130,10 @@ export type AvaliacaoFisica = {
   data: string;
   peso: number;
   altura: number;
+  imc?: number;
+  classificacao_imc?: string;
   gordura_corporal?: number;
+  percentual_gordura?: number;
   medidas?: Record<string, number>;
   fotos?: { frente?: string; costas?: string; lateral?: string };
   observacoes?: string;

@@ -15,16 +15,20 @@ import {
   Mail, 
   Calendar,
   Sparkles,
+  CheckCircle2,
   X
 } from 'lucide-react';
-import type { Aluno } from '@/lib/types';
+import type { Aluno, Treino } from '@/lib/types';
 import { ViewModeToggle } from '@/components/common/ViewModeToggle';
+import { ModalConviteAluno, type StatusEnvioEmail } from '@/components/common/ModalConviteAluno';
+import { enviarEmailConviteAluno } from '@/lib/emailService';
 import { toast } from 'sonner';
 
 type ClientesPageProps = {
   alunos: Aluno[];
+  treinos?: Treino[];
   limiteAlunos?: number;
-  onAddAluno: (aluno: Omit<Aluno, 'id' | 'professor_id'>) => Promise<void>;
+  onAddAluno: (aluno: Omit<Aluno, 'id' | 'professor_id'>) => Promise<Aluno | void>;
   onUpdateAluno: (id: string, patch: Partial<Aluno>) => Promise<void>;
   onDeleteAluno: (id: string) => Promise<void>;
   onSelectAlunoTreinos?: (aluno: Aluno) => void;
@@ -32,6 +36,7 @@ type ClientesPageProps = {
 
 export const ClientesPage: React.FC<ClientesPageProps> = ({
   alunos,
+  treinos = [],
   limiteAlunos = 25,
   onAddAluno,
   onUpdateAluno,
@@ -42,6 +47,40 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
   const [alunoEditando, setAlunoEditando] = useState<Aluno | null>(null);
+
+  // Estados do Modal de Convite Pós-Cadastro
+  const [modalConviteAberto, setModalConviteAberto] = useState(false);
+  const [alunoConvite, setAlunoConvite] = useState<Aluno | null>(null);
+  const [statusEmail, setStatusEmail] = useState<StatusEnvioEmail>('idle');
+  const [mensagemEmail, setMensagemEmail] = useState('');
+
+  // Estados de Prescrição de Treinos
+  const [alunoPrescrevendo, setAlunoPrescrevendo] = useState<Aluno | null>(null);
+  const [treinosSelecionados, setTreinosSelecionados] = useState<string[]>([]);
+  const [modalPrescreverAberto, setModalPrescreverAberto] = useState(false);
+
+  const abrirPrescricao = (aluno: Aluno) => {
+    setAlunoPrescrevendo(aluno);
+    setTreinosSelecionados(aluno.treinos_ids || []);
+    setModalPrescreverAberto(true);
+  };
+
+  const toggleTreinoSelecionado = (treinoId: string) => {
+    setTreinosSelecionados((prev) =>
+      prev.includes(treinoId) ? prev.filter((id) => id !== treinoId) : [...prev, treinoId]
+    );
+  };
+
+  const handleSalvarPrescricao = async () => {
+    if (!alunoPrescrevendo) return;
+    try {
+      await onUpdateAluno(alunoPrescrevendo.id, { treinos_ids: treinosSelecionados });
+      toast.success(`Fichas de treino de ${alunoPrescrevendo.nome.split(' ')[0]} atualizadas com sucesso!`);
+      setModalPrescreverAberto(false);
+    } catch {
+      toast.error('Erro ao salvar prescrição de treinos.');
+    }
+  };
 
   // Estados do formulário
   const [formNome, setFormNome] = useState('');
@@ -75,8 +114,8 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
     setFormTelefone('');
     setFormNascimento('');
     setFormGrupo('Geral');
-    setFormMensalidade('150');
-    setFormDiaVencimento('10');
+    setFormMensalidade('');
+    setFormDiaVencimento('');
     setFormSenha('');
     setModalNovoAberto(true);
   };
@@ -88,10 +127,39 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
     setFormTelefone(aluno.telefone);
     setFormNascimento(aluno.nascimento);
     setFormGrupo(aluno.grupo || 'Geral');
-    setFormMensalidade(String(aluno.valor_mensalidade || 150));
-    setFormDiaVencimento(String(aluno.dia_vencimento || 10));
+    setFormMensalidade(aluno.valor_mensalidade ? String(aluno.valor_mensalidade) : '');
+    setFormDiaVencimento(aluno.dia_vencimento ? String(aluno.dia_vencimento) : '');
     setFormSenha(aluno.senha || '');
     setModalNovoAberto(true);
+  };
+
+  const dispararEmailConvite = async (aluno: Aluno) => {
+    setStatusEmail('enviando');
+    setMensagemEmail('');
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
+    const linkAcesso = `${origin}/app?alunoId=${aluno.id}`;
+
+    try {
+      const res = await enviarEmailConviteAluno({
+        nome: aluno.nome,
+        email: aluno.email,
+        telefone: aluno.telefone,
+        linkAcesso,
+        senhaPadrao: aluno.senha || (aluno.telefone.replace(/\D/g, '').slice(-4) || '1234'),
+        professorNome: 'Giano Personal',
+      });
+
+      if (res.sucesso) {
+        setStatusEmail(res.modoSimulacao ? 'simulado' : 'enviado');
+        setMensagemEmail(res.mensagem);
+      } else {
+        setStatusEmail('erro');
+        setMensagemEmail(res.mensagem);
+      }
+    } catch {
+      setStatusEmail('erro');
+      setMensagemEmail('Erro inesperado ao disparar e-mail de convite.');
+    }
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
@@ -100,41 +168,71 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
       toast.error('Informe o nome do aluno.');
       return;
     }
-    if (!formTelefone.trim() && !formEmail.trim()) {
-      toast.error('Informe ao menos o WhatsApp ou o e-mail do aluno.');
+
+    const emailLimpo = formEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailLimpo || !emailRegex.test(emailLimpo)) {
+      toast.error('Informe um e-mail válido para o aluno (ex: aluno@email.com).');
       return;
     }
 
     setSalvando(true);
     try {
+      const mensalidadeNum = formMensalidade.trim() ? parseFloat(formMensalidade) : 0;
+      const diaVencimentoNum = formDiaVencimento.trim() ? parseInt(formDiaVencimento, 10) : 0;
+
       if (alunoEditando) {
         await onUpdateAluno(alunoEditando.id, {
           nome: formNome.trim(),
-          email: formEmail.trim(),
+          email: emailLimpo,
           telefone: formTelefone.trim(),
           nascimento: formNascimento.trim(),
           grupo: formGrupo.trim(),
-          valor_mensalidade: parseFloat(formMensalidade) || 150,
-          dia_vencimento: parseInt(formDiaVencimento, 10) || 10,
+          valor_mensalidade: mensalidadeNum,
+          dia_vencimento: diaVencimentoNum,
           senha: formSenha.trim() || undefined,
         });
         toast.success('Aluno atualizado com sucesso!');
+        setModalNovoAberto(false);
       } else {
-        await onAddAluno({
+        const senhaDefinida = formSenha.trim() || (formTelefone.replace(/\D/g, '').slice(-4) || '1234');
+        const alunoCriadoRetorno = await onAddAluno({
           nome: formNome.trim(),
-          email: formEmail.trim(),
+          email: emailLimpo,
           telefone: formTelefone.trim(),
           nascimento: formNascimento.trim(),
           grupo: formGrupo.trim(),
-          valor_mensalidade: parseFloat(formMensalidade) || 150,
-          dia_vencimento: parseInt(formDiaVencimento, 10) || 10,
+          valor_mensalidade: mensalidadeNum,
+          dia_vencimento: diaVencimentoNum,
           ativo: true,
           app_liberado: true,
-          senha: formSenha.trim() || undefined,
+          senha: senhaDefinida,
         });
         toast.success('Novo aluno cadastrado com sucesso!');
+        setModalNovoAberto(false);
+
+        const alunoParaConvite: Aluno = (alunoCriadoRetorno && 'id' in alunoCriadoRetorno)
+          ? alunoCriadoRetorno
+          : {
+              id: crypto.randomUUID(),
+              professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
+              nome: formNome.trim(),
+              email: emailLimpo,
+              telefone: formTelefone.trim(),
+              nascimento: formNascimento.trim(),
+              grupo: formGrupo.trim(),
+              valor_mensalidade: mensalidadeNum,
+              dia_vencimento: diaVencimentoNum,
+              ativo: true,
+              app_liberado: true,
+              senha: senhaDefinida,
+            };
+
+        setAlunoConvite(alunoParaConvite);
+        setModalConviteAberto(true);
+        dispararEmailConvite(alunoParaConvite);
+        return;
       }
-      setModalNovoAberto(false);
     } catch {
       toast.error('Erro ao salvar aluno.');
     } finally {
@@ -311,15 +409,13 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                     </button>
 
                     {/* Botão de Prescrição Rápida */}
-                    {onSelectAlunoTreinos && (
-                      <button
-                        onClick={() => onSelectAlunoTreinos(aluno)}
-                        className="p-2 rounded-xl text-neutral-500 hover:text-amber-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                        title="Prescrever / Ver Fichas de Treino"
-                      >
-                        <Dumbbell className="size-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => abrirPrescricao(aluno)}
+                      className="p-2 rounded-xl text-neutral-500 hover:text-amber-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      title="Prescrever / Ver Fichas de Treino"
+                    >
+                      <Dumbbell className="size-4" />
+                    </button>
 
                     {/* Copiar Link WhatsApp */}
                     <button
@@ -409,6 +505,13 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
 
                 <div className="flex items-center gap-1">
                   <button
+                    onClick={() => abrirPrescricao(aluno)}
+                    className="p-1.5 text-neutral-400 hover:text-amber-500 rounded-lg transition-colors"
+                    title="Prescrever Treinos"
+                  >
+                    <Dumbbell className="size-4" />
+                  </button>
+                  <button
                     onClick={() => copiarLinkApp(aluno.id, aluno.nome)}
                     className="p-1.5 text-neutral-400 hover:text-emerald-500 rounded-lg transition-colors"
                     title="Copiar Link"
@@ -496,10 +599,11 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
-                  E-mail
+                  E-mail *
                 </label>
                 <input
                   type="email"
+                  required
                   placeholder="ex: aluno@email.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
@@ -507,7 +611,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
                     Grupo / Turma
@@ -526,9 +630,23 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                   </label>
                   <input
                     type="number"
-                    placeholder="150"
+                    placeholder="Opcional"
                     value={formMensalidade}
                     onChange={(e) => setFormMensalidade(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-700 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 block mb-1.5">
+                    Dia Vencimento
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Ex: 10"
+                    min="1"
+                    max="31"
+                    value={formDiaVencimento}
+                    onChange={(e) => setFormDiaVencimento(e.target.value)}
                     className="w-full h-11 px-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-700 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -560,12 +678,140 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                 <button
                   type="submit"
                   disabled={salvando}
-                  className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-sm font-black transition-all shadow-md active:scale-95 disabled:opacity-50"
+                  className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-sm font-black transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   {salvando ? 'Salvando...' : alunoEditando ? 'Salvar Alterações' : 'Cadastrar Aluno'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONVITE PÓS-CADASTRO */}
+      <ModalConviteAluno
+        isOpen={modalConviteAberto}
+        onClose={() => setModalConviteAberto(false)}
+        aluno={alunoConvite}
+        statusEmail={statusEmail}
+        mensagemEmail={mensagemEmail}
+        onReenviarEmail={alunoConvite ? () => dispararEmailConvite(alunoConvite) : undefined}
+      />
+
+      {/* MODAL DE PRESCRIÇÃO DE TREINOS DO ALUNO */}
+      {modalPrescreverAberto && alunoPrescrevendo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+                  <Dumbbell className="size-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-neutral-900 dark:text-white">
+                    Prescrever Fichas de Treino
+                  </h2>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Aluno: <strong className="text-neutral-900 dark:text-white">{alunoPrescrevendo.nome}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalPrescreverAberto(false)}
+                className="size-8 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 flex items-center justify-center transition-colors"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {/* Explicação e Contador */}
+            <div className="flex items-center justify-between text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+              <span>Selecione as fichas liberadas para este aluno no app:</span>
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold">
+                {treinosSelecionados.length} selecionada(s)
+              </span>
+            </div>
+
+            {/* Lista de Treinos da Biblioteca com Checkboxes */}
+            <div className="max-h-72 overflow-y-auto space-y-2.5 pr-1">
+              {treinos.length === 0 ? (
+                <div className="p-8 text-center text-neutral-400 space-y-2">
+                  <Dumbbell className="size-8 mx-auto text-neutral-300 dark:text-neutral-700" />
+                  <p className="text-xs font-semibold">Nenhuma ficha cadastrada na biblioteca.</p>
+                  <p className="text-[11px] text-neutral-500">Crie treinos na aba "Treinos" para prescrever aos alunos.</p>
+                </div>
+              ) : (
+                treinos.map((treino) => {
+                  const isChecked = treinosSelecionados.includes(treino.id);
+                  const letraTreino = treino.nome.includes('Treino ')
+                    ? treino.nome.split('Treino ')[1]?.split(' ')[0]
+                    : 'T';
+
+                  return (
+                    <div
+                      key={treino.id}
+                      onClick={() => toggleTreinoSelecionado(treino.id)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isChecked
+                          ? 'border-amber-500 bg-amber-500/5 dark:bg-amber-500/10 shadow-xs'
+                          : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-850 hover:border-neutral-300 dark:hover:border-neutral-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`size-9 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                            isChecked
+                              ? 'bg-amber-500 text-neutral-950 shadow-md shadow-amber-500/20'
+                              : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                          }`}
+                        >
+                          {letraTreino}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-neutral-900 dark:text-white truncate">
+                            {treino.nome}
+                          </h4>
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                            {treino.descricao || `${treino.exercicios?.length || 0} exercícios cadastrados`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Checkbox customizado */}
+                      <div
+                        className={`size-6 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                          isChecked
+                            ? 'bg-amber-500 border-amber-500 text-neutral-950'
+                            : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900'
+                        }`}
+                      >
+                        {isChecked && <CheckCircle2 className="size-4 stroke-[3]" />}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Ações do Rodapé */}
+            <div className="pt-2 flex items-center gap-3 border-t border-neutral-100 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setModalPrescreverAberto(false)}
+                className="flex-1 h-11 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm font-bold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSalvarPrescricao}
+                className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-sm font-black transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="size-4 stroke-[2.5]" />
+                <span>Salvar Prescrição</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
