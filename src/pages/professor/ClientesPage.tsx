@@ -454,38 +454,51 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
       {/* CONTEÚDO: MODO GRADE / CARDS (ESTILO KEEPFY - FIGURA 2) */}
       {modoVisualizacao === 'grade' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {alunosFiltrados.map((aluno) => (
-            <div
-              key={aluno.id}
-              className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between"
-            >
-              {/* Badge de Status no Canto Superior Direito (Estilo Keepfy) */}
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-xs font-bold text-neutral-400">
-                  {aluno.grupo || 'Consultoria'}
-                </span>
-                <span
-                  className={`size-6 rounded-lg flex items-center justify-center font-black text-xs text-white ${
-                    aluno.ativo !== false ? 'bg-emerald-500' : 'bg-amber-500'
-                  }`}
-                >
-                  {aluno.ativo !== false ? 'C' : 'A'}
-                </span>
-              </div>
+          {alunosFiltrados.map((aluno) => {
+            const iniciais = aluno.nome.slice(0, 2).toUpperCase();
 
-              {/* Informações Centrais */}
-              <div className="space-y-1 mb-4">
-                <h3 className="font-bold text-base text-neutral-900 dark:text-white truncate">
-                  {aluno.nome}
-                </h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {aluno.telefone || aluno.email}
-                </p>
-                <div className="pt-2 flex items-center justify-between text-xs text-neutral-500">
-                  <span>Mensalidade: R$ {aluno.valor_mensalidade || 150}</span>
+            return (
+              <div
+                key={aluno.id}
+                className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between"
+              >
+                {/* Badge de Status no Canto Superior Direito (Estilo Keepfy) */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <span className="text-xs font-bold text-neutral-400">
+                    {aluno.grupo || 'Consultoria'}
+                  </span>
+                  <span
+                    className={`size-6 rounded-lg flex items-center justify-center font-black text-xs text-white ${
+                      aluno.ativo !== false ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  >
+                    {aluno.ativo !== false ? 'C' : 'A'}
+                  </span>
+                </div>
+
+                {/* Informações Centrais com Avatar Circular */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="size-11 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-black text-sm flex items-center justify-center shrink-0 overflow-hidden">
+                    {aluno.foto_url ? (
+                      <img src={aluno.foto_url} alt={aluno.nome} className="size-full object-cover" />
+                    ) : (
+                      iniciais
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-base text-neutral-900 dark:text-white truncate">
+                      {aluno.nome}
+                    </h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                      {aluno.telefone || aluno.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-1 pb-3 flex items-center justify-between text-xs text-neutral-500">
+                  <span>Mensalidade: {aluno.valor_mensalidade ? `R$ ${aluno.valor_mensalidade}` : 'A definir'}</span>
                   <span className="font-bold text-emerald-500">100,00%</span>
                 </div>
-              </div>
 
               {/* Ações do Card */}
               <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
@@ -535,7 +548,8 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

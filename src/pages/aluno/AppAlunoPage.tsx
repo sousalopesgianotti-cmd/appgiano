@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -196,6 +196,66 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const [treinoIniciado, setTreinoIniciado] = useState(false);
   const [tempoDescanso, setTempoDescanso] = useState(0);
   const [tempoCronometroDescanso, setTempoCronometroDescanso] = useState<number | null>(null);
+
+  // Referência e handler para upload e compressão da foto de perfil
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida (JPEG, PNG ou WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          const minSide = Math.min(img.width, img.height);
+          const startX = (img.width - minSide) / 2;
+          const startY = (img.height - minSide) / 2;
+
+          canvas.width = maxDim;
+          canvas.height = maxDim;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            toast.error('Não foi possível processar a imagem.');
+            return;
+          }
+
+          ctx.drawImage(img, startX, startY, minSide, minSide, 0, 0, maxDim, maxDim);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+          if (alunoLogado) {
+            const alunoAtualizado = { ...alunoLogado, foto_url: compressedBase64 };
+            setAlunoLogado(alunoAtualizado);
+
+            if (onUpdateAluno) {
+              onUpdateAluno(alunoLogado.id, { foto_url: compressedBase64 });
+            }
+            toast.success('Foto de perfil atualizada com sucesso! 📸');
+          }
+        } catch {
+          toast.error('Erro ao processar imagem.');
+        }
+      };
+      img.onerror = () => {
+        toast.error('Erro ao carregar a imagem selecionada.');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      toast.error('Erro ao ler o arquivo selecionado.');
+    };
+    reader.readAsDataURL(file);
+
+    e.target.value = '';
+  };
 
   // Mantém treinoAtivo sincronizado com treinosDoAluno
   useEffect(() => {
@@ -680,6 +740,15 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       {/* CONTAINER MOBILE (Máximo 430px de largura simulando tela de smartphone) */}
       <div className="w-full max-w-md min-h-screen bg-neutral-950 flex flex-col relative sm:border-x sm:border-neutral-800 shadow-2xl overflow-x-hidden">
         
+        {/* Input Oculto de Arquivo para Upload da Foto de Perfil */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleUploadFoto}
+        />
+
         {/* HEADER MOBILE COM MENU E AVATAR */}
         <header className="sticky top-0 z-30 bg-neutral-950/90 backdrop-blur-md px-4 py-3 border-b border-neutral-850 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -701,13 +770,22 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
               </span>
             )}
 
-            <div className="size-9 rounded-full bg-amber-500 text-neutral-950 font-black text-xs flex items-center justify-center overflow-hidden border border-amber-500/40">
+            {/* Avatar Clicável para Alteração Rápida de Foto de Perfil */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="size-9 rounded-full bg-amber-500 text-neutral-950 font-black text-xs flex items-center justify-center overflow-hidden border border-amber-500/40 relative cursor-pointer group hover:ring-2 hover:ring-amber-400 transition-all"
+              title="Toque para alterar sua foto de perfil"
+            >
               {alunoLogado.foto_url ? (
                 <img src={alunoLogado.foto_url} alt={alunoLogado.nome} className="size-full object-cover" />
               ) : (
                 alunoLogado.nome.slice(0, 2).toUpperCase()
               )}
-            </div>
+              <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                <Camera className="size-3.5" />
+              </div>
+            </button>
           </div>
         </header>
 
@@ -1760,17 +1838,31 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
               <div className="space-y-6">
                 {/* Topo do Drawer: Avatar + Saudação + Fechar (Figura 4) */}
                 <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
-                  <div className="flex items-center gap-3">
-                    <div className="size-11 rounded-full bg-amber-500 text-neutral-950 font-black text-sm flex items-center justify-center">
-                      {alunoLogado.foto_url ? (
-                        <img src={alunoLogado.foto_url} alt={alunoLogado.nome} className="size-full object-cover rounded-full" />
-                      ) : (
-                        alunoLogado.nome.slice(0, 2).toUpperCase()
-                      )}
+                  <div
+                    onClick={() => {
+                      setMenuAberto(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="flex items-center gap-3 cursor-pointer group"
+                    title="Toque para alterar sua foto de perfil"
+                  >
+                    <div className="relative">
+                      <div className="size-11 rounded-full bg-amber-500 text-neutral-950 font-black text-sm flex items-center justify-center overflow-hidden border border-amber-500/40">
+                        {alunoLogado.foto_url ? (
+                          <img src={alunoLogado.foto_url} alt={alunoLogado.nome} className="size-full object-cover" />
+                        ) : (
+                          alunoLogado.nome.slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 size-4.5 rounded-full bg-neutral-900 border border-neutral-700 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Camera className="size-2.5" />
+                      </div>
                     </div>
                     <div>
                       <p className="text-xs text-neutral-400">Olá, 👋</p>
-                      <p className="text-sm font-black text-white">{alunoLogado.nome.split(' ')[0]}</p>
+                      <p className="text-sm font-black text-white group-hover:text-amber-400 transition-colors">
+                        {alunoLogado.nome.split(' ')[0]}
+                      </p>
                     </div>
                   </div>
 
@@ -1815,8 +1907,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   })}
                 </nav>
 
-                {/* Opção Permanente: Alterar Senha */}
-                <div className="pt-2 border-t border-neutral-800">
+                {/* Opções Permanentes de Conta: Alterar Foto e Alterar Senha */}
+                <div className="pt-2 border-t border-neutral-800 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuAberto(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl font-bold text-sm text-left text-neutral-300 hover:text-white hover:bg-neutral-850 transition-colors cursor-pointer"
+                  >
+                    <Camera className="size-4 text-amber-500" />
+                    <span>Alterar Foto de Perfil</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
