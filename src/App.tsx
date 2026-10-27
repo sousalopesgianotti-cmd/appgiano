@@ -18,11 +18,13 @@ import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
 if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-  const PROD_RELEASE_KEY = 'giano_v1_prod_clean_release';
-  if (localStorage.getItem(PROD_RELEASE_KEY) !== 'v1') {
+  const PROD_RELEASE_KEY = 'giano_v2_empty_aluno_treinos';
+  if (localStorage.getItem(PROD_RELEASE_KEY) !== 'v2') {
     localStorage.removeItem('giano_professores_db');
     localStorage.removeItem('giano_alunos_db');
-    localStorage.setItem(PROD_RELEASE_KEY, 'v1');
+    localStorage.removeItem('giano_avaliacoes_db');
+    localStorage.removeItem('giano_execucoes_db');
+    localStorage.setItem(PROD_RELEASE_KEY, 'v2');
   }
 }
 
@@ -41,7 +43,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     ativo: true,
     app_liberado: true,
     senha: "5555",
-    treinos_ids: ["tr_peito_triceps_1", "tr_costas_biceps_2"],
+    treinos_ids: [],
   },
   {
     id: "7132f4da-920a-4bb0-9db2-ab6af05c5d7a",
@@ -56,7 +58,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     ativo: true,
     app_liberado: true,
     senha: "6692",
-    treinos_ids: ["tr_pernas_completo_3"],
+    treinos_ids: [],
   },
 ];
 
