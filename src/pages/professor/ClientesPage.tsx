@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
-import type { Aluno, Treino } from '@/lib/types';
+import type { Aluno, Treino, Exercicio, PastaExercicio } from '@/lib/types';
+import { TreinosAlunoNexurView } from './TreinosAlunoNexurView';
 import { ViewModeToggle } from '@/components/common/ViewModeToggle';
 import { ModalConviteAluno, type StatusEnvioEmail } from '@/components/common/ModalConviteAluno';
 import { enviarEmailConviteAluno } from '@/lib/emailService';
@@ -28,30 +29,39 @@ import { toast } from 'sonner';
 type ClientesPageProps = {
   alunos: Aluno[];
   treinos?: Treino[];
+  exercicios?: Exercicio[];
+  pastas?: PastaExercicio[];
   limiteAlunos?: number;
   onAddAluno: (aluno: Omit<Aluno, 'id' | 'professor_id'>) => Promise<Aluno | void>;
   onUpdateAluno: (id: string, patch: Partial<Aluno>) => Promise<void>;
   onDeleteAluno: (id: string) => Promise<void>;
   onSelectAlunoTreinos?: (aluno: Aluno) => void;
   onAddTreino?: (novo: Omit<Treino, 'id'>) => Promise<Treino | void>;
+  onUpdateTreino?: (id: string, patch: Partial<Treino>) => Promise<void>;
   onDeleteTreino?: (id: string) => Promise<void>;
 };
 
 export const ClientesPage: React.FC<ClientesPageProps> = ({
   alunos,
   treinos = [],
+  exercicios = [],
+  pastas = [],
   limiteAlunos = 25,
   onAddAluno,
   onUpdateAluno,
   onDeleteAluno,
   onSelectAlunoTreinos,
   onAddTreino,
+  onUpdateTreino,
   onDeleteTreino,
 }) => {
   const [modoVisualizacao, setModoVisualizacao] = useState<'grade' | 'lista'>('lista');
   const [searchTerm, setSearchTerm] = useState('');
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
   const [alunoEditando, setAlunoEditando] = useState<Aluno | null>(null);
+
+  // Visualização e montagem de treinos do aluno estilo Nexur
+  const [alunoTreinosNexur, setAlunoTreinosNexur] = useState<Aluno | null>(null);
 
   // Estados do Modal de Convite Pós-Cadastro
   const [modalConviteAberto, setModalConviteAberto] = useState(false);
@@ -65,9 +75,7 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
   const [modalPrescreverAberto, setModalPrescreverAberto] = useState(false);
 
   const abrirPrescricao = (aluno: Aluno) => {
-    setAlunoPrescrevendo(aluno);
-    setTreinosSelecionados(aluno.treinos_ids || []);
-    setModalPrescreverAberto(true);
+    setAlunoTreinosNexur(aluno);
   };
 
   // Estados para inclusão e exclusão de fichas dentro do modal de prescrição
@@ -328,6 +336,25 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
     navigator.clipboard.writeText(link);
     toast.success(`Link exclusivo de ${nome.split(' ')[0]} copiado! Envie no WhatsApp dele.`);
   };
+
+  // Se o professor abriu a visão de treinos estilo Nexur do aluno
+  if (alunoTreinosNexur) {
+    const alunoAtual = alunos.find((a) => a.id === alunoTreinosNexur.id) || alunoTreinosNexur;
+
+    return (
+      <TreinosAlunoNexurView
+        aluno={alunoAtual}
+        treinos={treinos}
+        exercicios={exercicios}
+        pastas={pastas}
+        onVoltar={() => setAlunoTreinosNexur(null)}
+        onUpdateAluno={onUpdateAluno}
+        onAddTreino={onAddTreino || (async () => {})}
+        onUpdateTreino={onUpdateTreino || (async () => {})}
+        onDeleteTreino={onDeleteTreino}
+      />
+    );
+  }
 
   return (
     <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">

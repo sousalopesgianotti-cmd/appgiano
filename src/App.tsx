@@ -677,11 +677,14 @@ function AppContent() {
             <ClientesPage
               alunos={alunos}
               treinos={treinos}
+              exercicios={exercicios}
+              pastas={pastas}
               limiteAlunos={viewMode === 'owner' ? 9999 : 50}
               onAddAluno={handleAddAluno}
               onUpdateAluno={handleUpdateAluno}
               onDeleteAluno={handleDeleteAluno}
               onAddTreino={handleAddTreino}
+              onUpdateTreino={handleUpdateTreino}
               onDeleteTreino={handleDeleteTreino}
               onSelectAlunoTreinos={(aluno) => {
                 setIsMobileView(true);
