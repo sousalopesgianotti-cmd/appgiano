@@ -141,6 +141,20 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
   const [verNovaSenha, setVerNovaSenha] = useState(false);
 
+  // Limpa a URL removendo credenciais e parâmetros residuais (?alunoId=...&s=...) da barra de endereços
+  const limparParametrosUrl = () => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  };
+
+  // Garante a limpeza da URL assim que o aluno estiver com sessão ativa
+  useEffect(() => {
+    if (alunoLogado) {
+      limparParametrosUrl();
+    }
+  }, [alunoLogado]);
+
   // Sincroniza alunoLogado quando houver atualização dos alunos (ex: prescrição de treinos)
   useEffect(() => {
     if (alunoLogado) {
@@ -326,6 +340,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
 
   const efetivarEntradaAluno = (aluno: Aluno) => {
     setAlunoLogado(aluno);
+    limparParametrosUrl();
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('giano_aluno_ativo_id', aluno.id);
       try {
@@ -345,6 +360,13 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   };
 
   const processarSenhaCorreta = (aluno: Aluno) => {
+    // Se o aluno já definiu senha definitiva anteriormente, entra direto sem reabrir modal
+    if (aluno.senha_alterada) {
+      efetivarEntradaAluno(aluno);
+      toast.success(`Bem-vindo(a) de volta, ${aluno.nome.split(' ')[0]}! 💪`);
+      return;
+    }
+    // Primeiro acesso com senha provisória: abre pergunta se deseja alterar
     setAlunoPendente(aluno);
     setModalPrimeiroAcessoAberto(true);
   };
@@ -424,10 +446,10 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
 
     try {
       if (onUpdateAluno) {
-        await onUpdateAluno(alunoAlvo.id, { senha: novaSenhaFinal });
+        await onUpdateAluno(alunoAlvo.id, { senha: novaSenhaFinal, senha_alterada: true });
       }
 
-      const alunoAtualizado = { ...alunoAlvo, senha: novaSenhaFinal };
+      const alunoAtualizado: Aluno = { ...alunoAlvo, senha: novaSenhaFinal, senha_alterada: true };
       efetivarEntradaAluno(alunoAtualizado);
 
       setModalTrocarSenhaAberto(false);
@@ -443,7 +465,10 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const handleLogout = () => {
     setAlunoLogado(null);
     setAlunoPendente(null);
-    localStorage.removeItem('giano_aluno_ativo_id');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('giano_aluno_ativo_id');
+    }
+    limparParametrosUrl();
     setMenuAberto(false);
     if (onLogout) {
       onLogout();
@@ -521,7 +546,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                 </div>
               </div>
 
-              <form onSubmit={handleLoginConvidado} className="space-y-4">
+              <form onSubmit={handleLoginConvidado} method="post" className="space-y-4">
+                {/* Identificador oculto para que navegadores (iOS Safari / Chrome) vinculem a senha ao usuário */}
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  value={alunoConvidado.telefone || alunoConvidado.email || alunoConvidado.nome}
+                  readOnly
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-hidden="true"
+                />
+
                 <div>
                   <label className="text-xs font-bold text-neutral-300 flex items-center justify-between mb-1.5">
                     <span>Senha de Acesso Provisória</span>
@@ -532,6 +569,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   <div className="relative">
                     <input
                       type={verSenha ? 'text' : 'password'}
+                      name="password"
+                      autoComplete="current-password"
                       required
                       autoFocus
                       placeholder={`Digite sua senha (ex: ${quatroDigitosWhats || '1234'})`}
@@ -575,13 +614,15 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
           ) : (
             /* CARD DE LOGIN PADRÃO */
             <div className="rounded-3xl border border-neutral-800 bg-neutral-900/90 p-6 shadow-2xl backdrop-blur space-y-4 animate-in fade-in zoom-in-95 duration-200">
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleLogin} method="post" className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-neutral-300 block mb-1.5">
                     WhatsApp ou E-mail
                   </label>
                   <input
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     required
                     placeholder="ex: 11999999999 ou seu@email.com"
                     value={identificadorLogin}
@@ -598,6 +639,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   <div className="relative">
                     <input
                       type={verSenha ? 'text' : 'password'}
+                      name="password"
+                      autoComplete="current-password"
+                      required
                       placeholder="Sua senha"
                       value={senhaLogin}
                       onChange={(e) => setSenhaLogin(e.target.value)}
@@ -710,7 +754,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   </div>
                 </div>
 
-                <form onSubmit={handleSalvarNovaSenha} className="space-y-3.5 pt-1">
+                <form onSubmit={handleSalvarNovaSenha} method="post" className="space-y-3.5 pt-1">
+                  {/* Identificador da conta para que o navegador (Safari/Chrome) vincule a nova senha ao atleta */}
+                  <input
+                    type="text"
+                    name="username"
+                    autoComplete="username"
+                    value={alunoPendente?.telefone || alunoPendente?.email || alunoConvidado?.telefone || ''}
+                    readOnly
+                    tabIndex={-1}
+                    className="sr-only"
+                    aria-hidden="true"
+                  />
+
                   <div>
                     <label className="text-xs font-bold text-neutral-300 block mb-1">
                       Nova Senha *
@@ -718,6 +774,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     <div className="relative">
                       <input
                         type={verNovaSenha ? 'text' : 'password'}
+                        name="new-password"
+                        autoComplete="new-password"
                         required
                         minLength={4}
                         placeholder="Mínimo de 4 caracteres"
@@ -741,6 +799,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     </label>
                     <input
                       type={verNovaSenha ? 'text' : 'password'}
+                      name="new-password-confirm"
+                      autoComplete="new-password"
                       required
                       minLength={4}
                       placeholder="Repita a nova senha"
@@ -2017,7 +2077,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                 </div>
               </div>
 
-              <form onSubmit={handleSalvarNovaSenha} className="space-y-3.5 pt-1">
+              <form onSubmit={handleSalvarNovaSenha} method="post" className="space-y-3.5 pt-1">
+                {/* Identificador oculto para que o navegador (Safari/Chrome) vincule a nova senha ao atleta */}
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  value={alunoLogado?.telefone || alunoLogado?.email || ''}
+                  readOnly
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-hidden="true"
+                />
+
                 <div>
                   <label className="text-xs font-bold text-neutral-300 block mb-1">
                     Nova Senha *
@@ -2025,6 +2097,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   <div className="relative">
                     <input
                       type={verNovaSenha ? 'text' : 'password'}
+                      name="new-password"
+                      autoComplete="new-password"
                       required
                       minLength={4}
                       placeholder="Mínimo de 4 caracteres"
@@ -2048,6 +2122,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   </label>
                   <input
                     type={verNovaSenha ? 'text' : 'password'}
+                    name="new-password-confirm"
+                    autoComplete="new-password"
                     required
                     minLength={4}
                     placeholder="Repita a nova senha"

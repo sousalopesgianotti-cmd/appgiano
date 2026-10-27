@@ -338,7 +338,23 @@ function AppContent() {
       if (alunoUrl) {
         const idx = listaAtual.findIndex((a) => a.id === alunoUrl.id);
         if (idx >= 0) {
-          listaAtual[idx] = { ...listaAtual[idx], ...alunoUrl };
+          const existente = listaAtual[idx];
+          // Blindagem de credenciais: preserva a senha personalizada se já foi alterada ou definida
+          const senhaDefinitiva =
+            existente.senha_alterada || (existente.senha && existente.senha !== alunoUrl.senha)
+              ? existente.senha
+              : (alunoUrl.senha || existente.senha);
+
+          listaAtual[idx] = {
+            ...alunoUrl,
+            ...existente,
+            senha: senhaDefinitiva,
+            treinos_ids:
+              existente.treinos_ids && existente.treinos_ids.length > 0
+                ? existente.treinos_ids
+                : alunoUrl.treinos_ids || [],
+            senha_alterada: existente.senha_alterada,
+          };
         } else {
           listaAtual = [alunoUrl, ...listaAtual];
         }
@@ -371,7 +387,14 @@ function AppContent() {
 
   const handleUpdateAluno = async (id: string, patch: Partial<Aluno>) => {
     setAlunos((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...patch } : a))
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        const atualizado = { ...a, ...patch };
+        if (patch.senha) {
+          atualizado.senha_alterada = true;
+        }
+        return atualizado;
+      })
     );
   };
 
