@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Aluno, Treino } from '@/lib/types';
 import { gerarLinkConvite } from '@/lib/convite';
+import { enviarTreinosParaNuvem } from '@/lib/syncService';
 import { toast } from 'sonner';
 
 export type StatusEnvioEmail = 'idle' | 'enviando' | 'enviado' | 'simulado' | 'erro';
@@ -36,6 +37,14 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
   treinos = [],
 }) => {
   const [copiado, setCopiado] = useState(false);
+
+  // Garante sincronização em nuvem do aluno e seus treinos ao abrir o modal de convite
+  React.useEffect(() => {
+    if (isOpen && aluno) {
+      const treinosAtivos = treinos.filter((t) => aluno.treinos_ids?.includes(t.id));
+      enviarTreinosParaNuvem(aluno, treinosAtivos);
+    }
+  }, [isOpen, aluno, treinos]);
 
   if (!isOpen || !aluno) return null;
 
