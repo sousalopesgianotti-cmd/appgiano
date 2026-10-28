@@ -11,7 +11,7 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import type { Aluno, Treino } from '@/lib/types';
-import { gerarLinkConvite } from '@/lib/convite';
+import { gerarLinkConvite, gerarMensagemWhatsAppAluno } from '@/lib/convite';
 import { enviarTreinosParaNuvem } from '@/lib/syncService';
 import { toast } from 'sonner';
 
@@ -49,14 +49,14 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
   if (!isOpen || !aluno) return null;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
-  const linkConvite = gerarLinkConvite(origin, aluno, treinos);
+  const { texto: textoWhatsApp, link: linkAcesso, isRecorrente } = gerarMensagemWhatsAppAluno(origin, aluno, treinos);
   const primeiroNome = aluno.nome.split(' ')[0] || aluno.nome;
 
   const handleCopiarLink = async () => {
     try {
-      await navigator.clipboard.writeText(linkConvite);
+      await navigator.clipboard.writeText(linkAcesso);
       setCopiado(true);
-      toast.success(`Link exclusivo de ${primeiroNome} copiado!`);
+      toast.success(isRecorrente ? `Link oficial do App copiado!` : `Link exclusivo de ${primeiroNome} copiado!`);
       setTimeout(() => setCopiado(false), 2500);
     } catch {
       toast.error('Erro ao copiar link para a área de transferência.');
@@ -65,12 +65,9 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
 
   const handleCompartilharWhatsApp = () => {
     const telefoneLimpo = aluno.telefone.replace(/\D/g, '');
-    const senhaTexto = aluno.senha ? `\nSua senha inicial de acesso é: *${aluno.senha}*` : '';
-    const texto = `Olá ${primeiroNome}! Seu acesso ao aplicativo do *Personal Academy* está liberado. 💪🏋️‍♂️\n\nAbra o link abaixo para visualizar sua rotina de treinos:${senhaTexto}\n\n👉 ${linkConvite}`;
-
     const linkWa = telefoneLimpo
-      ? `https://api.whatsapp.com/send?phone=55${telefoneLimpo}&text=${encodeURIComponent(texto)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+      ? `https://api.whatsapp.com/send?phone=55${telefoneLimpo}&text=${encodeURIComponent(textoWhatsApp)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(textoWhatsApp)}`;
 
     window.open(linkWa, '_blank');
   };
@@ -97,25 +94,29 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-black text-white tracking-tight">
-              Aluno Cadastrado com Sucesso!
+              {isRecorrente ? 'Link de Acesso ao App' : 'Aluno Cadastrado com Sucesso!'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400">
-              O perfil de <strong className="text-amber-400">{aluno.nome}</strong> está pronto.
+              {isRecorrente ? (
+                <>Link direto para <strong className="text-amber-400">{aluno.nome}</strong> acessar seus treinos.</>
+              ) : (
+                <>O perfil de <strong className="text-amber-400">{aluno.nome}</strong> está pronto.</>
+              )}
             </p>
           </div>
         </div>
 
-        {/* Card do Link Exclusivo */}
+        {/* Card do Link */}
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-2">
-              Link de Convite e Acesso ao Treino
+              {isRecorrente ? 'Link Oficial do App (Área do Atleta)' : 'Link de Convite e Acesso ao Treino'}
             </label>
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-950 border border-neutral-800">
               <input
                 type="text"
                 readOnly
-                value={linkConvite}
+                value={linkAcesso}
                 className="w-full bg-transparent text-xs text-neutral-300 font-mono outline-none px-2 select-all"
               />
               <button
@@ -149,7 +150,7 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-emerald-950/40 transition-all cursor-pointer"
           >
             <Send className="size-4" />
-            <span>Enviar Convite pelo WhatsApp</span>
+            <span>{isRecorrente ? 'Enviar Link do App pelo WhatsApp' : 'Enviar Convite pelo WhatsApp'}</span>
           </button>
 
           {/* Card de Status do Envio por E-mail */}

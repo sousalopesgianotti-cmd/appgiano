@@ -23,7 +23,7 @@ import { TreinosAlunoNexurView } from './TreinosAlunoNexurView';
 import { ViewModeToggle } from '@/components/common/ViewModeToggle';
 import { ModalConviteAluno, type StatusEnvioEmail } from '@/components/common/ModalConviteAluno';
 import { enviarEmailConviteAluno } from '@/lib/emailService';
-import { gerarLinkConvite } from '@/lib/convite';
+import { gerarLinkConvite, gerarLinkAcessoAluno, gerarMensagemWhatsAppAluno } from '@/lib/convite';
 import { toast } from 'sonner';
 
 type ClientesPageProps = {
@@ -332,9 +332,26 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
   const copiarLinkApp = (alunoId: string, nome: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
     const aluno = alunos.find((a) => a.id === alunoId);
-    const link = aluno ? gerarLinkConvite(origin, aluno, treinos) : `${origin}/app?alunoId=${alunoId}`;
+    if (!aluno) return;
+
+    const { link, isRecorrente } = gerarMensagemWhatsAppAluno(origin, aluno, treinos);
     navigator.clipboard.writeText(link);
-    toast.success(`Link exclusivo de ${nome.split(' ')[0]} copiado! Envie no WhatsApp dele.`);
+
+    if (isRecorrente) {
+      toast.success(`Link oficial do App copiado para ${nome.split(' ')[0]}! (${link})`);
+    } else {
+      toast.success(`Link de primeiro acesso copiado para ${nome.split(' ')[0]}!`);
+    }
+  };
+
+  const compartilharWhatsAppAluno = (aluno: Aluno) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://appgiano.com.br';
+    const { texto } = gerarMensagemWhatsAppAluno(origin, aluno, treinos);
+    const telLimpo = (aluno.telefone || '').replace(/\D/g, '');
+    const urlWa = telLimpo
+      ? `https://api.whatsapp.com/send?phone=55${telLimpo}&text=${encodeURIComponent(texto)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(urlWa, '_blank');
   };
 
   // Se o professor abriu a visão de treinos estilo Nexur do aluno

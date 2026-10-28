@@ -29,6 +29,46 @@ export function gerarLinkConvite(origin: string, aluno: Aluno, _treinosDisponive
 }
 
 /**
+ * Retorna o link apropriado para o aluno:
+ * - Se o aluno já alterou sua senha / fez primeiro acesso: retorna o link definitivo oficial do app `${origin}/app`
+ * - Se for novo aluno ainda sem senha alterada: retorna o link de convite provisório.
+ */
+export function gerarLinkAcessoAluno(origin: string, aluno: Aluno, treinos: Treino[] = []): string {
+  if (aluno.senha_alterada) {
+    return `${origin}/app`;
+  }
+  return gerarLinkConvite(origin, aluno, treinos);
+}
+
+/**
+ * Gera o texto pronto e formatado para envio no WhatsApp do aluno:
+ * - Se já fez primeiro acesso: mensagem limpa com link definitivo do app e dica de PWA (fixar na tela inicial).
+ * - Se for novo: mensagem de convite com senha provisória e instruções de primeiro acesso.
+ */
+export function gerarMensagemWhatsAppAluno(
+  origin: string,
+  aluno: Aluno,
+  treinos: Treino[] = []
+): { texto: string; link: string; isRecorrente: boolean } {
+  const primeiroNome = aluno.nome.trim().split(' ')[0] || aluno.nome.trim();
+
+  if (aluno.senha_alterada) {
+    const link = `${origin}/app`;
+    const texto = `Olá, ${primeiroNome}! 💪\n\nAqui está o link de acesso aos seus treinos no App Giano:\n👉 ${link}\n\n📱 Acesse com seu e-mail/WhatsApp e sua senha cadastrada.\n\n💡 *Dica:* Para abrir o app com 1 toque como um aplicativo, abra o link no seu navegador (Safari ou Chrome), toque em *Compartilhar* e selecione *"Adicionar à Tela de Início"*! 🔥`;
+    return { texto, link, isRecorrente: true };
+  }
+
+  const link = gerarLinkConvite(origin, aluno, treinos);
+  const telDigits = aluno.telefone.replace(/\D/g, '');
+  const senhaProvisoria = (aluno.senha && aluno.senha.trim())
+    ? aluno.senha.trim()
+    : (telDigits.slice(-4) || '1234');
+
+  const texto = `Olá, ${primeiroNome}! Seu acesso ao aplicativo do *Personal Academy* está liberado. 💪🏋️‍♂️\n\nAbra o link abaixo para visualizar sua rotina de treinos:\nSua senha inicial provisória é: *${senhaProvisoria}*\n\n👉 ${link}\n\n💡 Ao entrar, você poderá cadastrar sua senha pessoal definitiva!`;
+  return { texto, link, isRecorrente: false };
+}
+
+/**
  * Extrai os dados do aluno a partir dos parâmetros simples da URL (se o aluno ainda não existir localmente no aparelho)
  */
 export function extrairAlunoDoLink(searchParams: URLSearchParams): Aluno | null {
