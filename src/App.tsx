@@ -15,7 +15,7 @@ import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
-import { enviarTreinosParaNuvem } from '@/lib/syncService';
+import { enviarTreinosParaNuvem, salvarAlunoNaNuvem, sincronizarLoteAlunos } from '@/lib/syncService';
 import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
@@ -32,6 +32,21 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
 
 // Dados iniciais de Alunos
 const ALUNOS_INICIAIS: Aluno[] = [
+  {
+    id: "6e81009c-5a6f-499c-8fb6-677637612111",
+    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
+    nome: "André Lopes",
+    email: "andre_lopes2003@yahoo.com.br",
+    telefone: "11999992003",
+    nascimento: "01/01/1990",
+    grupo: "Hipertrofia",
+    valor_mensalidade: 200,
+    dia_vencimento: 10,
+    ativo: true,
+    app_liberado: true,
+    senha: "2003",
+    treinos_ids: ["tr_peito_triceps_1"],
+  },
   {
     id: "a1b2c3d4-0003-4000-8000-000000000003",
     professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
@@ -372,12 +387,19 @@ function AppContent() {
     return listaAtual;
   });
 
-  // Salva no localStorage a cada alteração
+  // Salva no localStorage e garante persistência
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('giano_alunos_db', JSON.stringify(alunos));
     }
   }, [alunos]);
+
+  // Sincronização inicial automática de todos os alunos locais para a nuvem
+  useEffect(() => {
+    if (alunos.length > 0) {
+      sincronizarLoteAlunos(alunos);
+    }
+  }, []);
 
   const handleAddAluno = async (novo: Omit<Aluno, 'id' | 'professor_id'>): Promise<Aluno> => {
     const alunoCriado: Aluno = {
@@ -388,6 +410,8 @@ function AppContent() {
       created_at: new Date().toISOString(),
     };
     setAlunos((prev) => [alunoCriado, ...prev]);
+    // Sincroniza imediatamente na nuvem em tempo real
+    salvarAlunoNaNuvem(alunoCriado);
     return alunoCriado;
   };
 
@@ -405,9 +429,12 @@ function AppContent() {
       })
     );
 
-    if (alunoAtualizado && patch.treinos_ids) {
-      const treinosAtivos = treinos.filter((t) => patch.treinos_ids?.includes(t.id));
-      enviarTreinosParaNuvem(alunoAtualizado, treinosAtivos);
+    if (alunoAtualizado) {
+      const alunoFinal: Aluno = alunoAtualizado;
+      const treinosAtivos = alunoFinal.treinos_ids && alunoFinal.treinos_ids.length > 0
+        ? treinos.filter((t) => alunoFinal.treinos_ids?.includes(t.id))
+        : [];
+      salvarAlunoNaNuvem(alunoFinal, treinosAtivos);
     }
   };
 

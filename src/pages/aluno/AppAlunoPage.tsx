@@ -42,7 +42,7 @@ import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
 import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
-import { buscarTreinosDaNuvem } from '@/lib/syncService';
+import { buscarTreinosDaNuvem, buscarAlunoPorIdentificadorNaNuvem } from '@/lib/syncService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -506,31 +506,36 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     const limpo = identificadorLogin.trim().toLowerCase();
     const digits = limpo.replace(/\D/g, '');
 
+    // 1. Busca nos alunos em memória (prop alunos)
     let match = alunos.find((a) => {
       if (a.email && a.email.toLowerCase() === limpo) return true;
       const telDigits = (a.telefone || '').replace(/\D/g, '');
-      if (digits && telDigits.endsWith(digits)) return true;
+      if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
       return false;
     });
 
-    // Se não encontrou no banco local, consulta a nuvem da aplicação!
-    if (!match) {
+    // 2. Busca no cache local do dispositivo
+    if (!match && typeof localStorage !== 'undefined') {
       try {
-        const resp = await fetch('/api/sync');
-        if (resp.ok) {
-          const json = await resp.json();
-          const alunosNuvem = Object.values(json?.alunos || {}) as any[];
-          const matchItem = alunosNuvem.find((item: any) => {
-            const al = item.aluno || item;
-            const alEmail = (al.email || '').toLowerCase();
-            if (alEmail && alEmail === limpo) return true;
-            const alTel = (al.telefone || '').replace(/\D/g, '');
-            if (digits && alTel.endsWith(digits)) return true;
+        const salvoAlunos = localStorage.getItem('giano_alunos_db');
+        if (salvoAlunos) {
+          const lista: Aluno[] = JSON.parse(salvoAlunos);
+          match = lista.find((a) => {
+            if (a.email && a.email.toLowerCase() === limpo) return true;
+            const telDigits = (a.telefone || '').replace(/\D/g, '');
+            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
             return false;
           });
-          if (matchItem) {
-            match = matchItem.aluno || matchItem;
-          }
+        }
+      } catch {}
+    }
+
+    // 3. Se não encontrou no aparelho, consulta a nuvem em tempo real!
+    if (!match) {
+      try {
+        const cloudAluno = await buscarAlunoPorIdentificadorNaNuvem(limpo);
+        if (cloudAluno) {
+          match = cloudAluno;
         }
       } catch {}
     }
