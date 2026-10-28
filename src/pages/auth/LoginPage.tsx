@@ -4,7 +4,7 @@ import { Logo } from '@/components/common/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 import type { Aluno, Professor } from '@/lib/types';
-import { buscarAlunoPorIdentificadorNaNuvem } from '@/lib/syncService';
+import { buscarAlunoPorIdentificadorNaNuvem, salvarAlunoNaNuvem } from '@/lib/syncService';
 import { toast } from 'sonner';
 
 interface LoginPageProps {
@@ -169,32 +169,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores =
         return;
       }
 
+      const senhaDigitada = senha.trim();
       const telDigits = (alunoMatch.telefone || '').replace(/\D/g, '');
-      const senhaEsperada = (alunoMatch.senha && alunoMatch.senha.trim())
-        ? alunoMatch.senha.trim()
-        : (telDigits.slice(-4) || '1234');
+      const quatroDigitosWhats = telDigits.slice(-4);
 
-      if (senha.trim() !== senhaEsperada) {
-        toast.error('Senha incorreta. Digite a senha cadastrada com seu personal.');
+      const senhasValidas = new Set<string>();
+      if (alunoMatch.senha && alunoMatch.senha.trim()) senhasValidas.add(alunoMatch.senha.trim());
+      if (quatroDigitosWhats) senhasValidas.add(quatroDigitosWhats);
+      if (senhasValidas.size === 0) senhasValidas.add('1234');
+
+      if (!senhasValidas.has(senhaDigitada)) {
+        toast.error('Senha incorreta. Digite sua senha pessoal ou os 4 últimos dígitos do WhatsApp.');
         return;
       }
 
-      toast.success(`Bem-vindo(a), ${alunoMatch.nome.split(' ')[0]}! Acessando app do aluno...`);
+      let alunoFinal: Aluno = alunoMatch;
+      if (alunoMatch.senha !== senhaDigitada) {
+        alunoFinal = { ...alunoMatch, senha: senhaDigitada, senha_alterada: true };
+        salvarAlunoNaNuvem(alunoFinal);
+      }
+
+      toast.success(`Bem-vindo(a), ${alunoFinal.nome.split(' ')[0]}! Acessando app do aluno...`);
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('giano_aluno_ativo_id', alunoMatch.id);
+        localStorage.setItem('giano_aluno_ativo_id', alunoFinal.id);
         try {
           const salvo = localStorage.getItem('giano_alunos_db');
           let list: Aluno[] = salvo ? JSON.parse(salvo) : [];
-          if (!list.some((a) => a.id === alunoMatch.id)) {
-            list.push(alunoMatch);
+          if (!list.some((a) => a.id === alunoFinal.id)) {
+            list.push(alunoFinal);
             localStorage.setItem('giano_alunos_db', JSON.stringify(list));
           }
         } catch {}
       }
       onLogin({
-        id: alunoMatch.id,
-        nome: alunoMatch.nome,
-        email: alunoMatch.email,
+        id: alunoFinal.id,
+        nome: alunoFinal.nome,
+        email: alunoFinal.email,
         role: 'aluno',
       });
       return;

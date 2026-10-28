@@ -42,7 +42,7 @@ import { Logo } from '@/components/common/Logo';
 import { toast } from 'sonner';
 import type { Aluno, Treino, TreinoExecucao, ExercicioItemTreino, AvaliacaoFisica } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
-import { buscarTreinosDaNuvem, buscarAlunoPorIdentificadorNaNuvem } from '@/lib/syncService';
+import { buscarTreinosDaNuvem, buscarAlunoPorIdentificadorNaNuvem, salvarAlunoNaNuvem } from '@/lib/syncService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
@@ -170,6 +170,13 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
   const [verNovaSenha, setVerNovaSenha] = useState(false);
+
+  // Estados de Redefinição de Senha
+  const [modalRedefinirAberto, setModalRedefinirAberto] = useState(false);
+  const [identificadorRedefinir, setIdentificadorRedefinir] = useState('');
+  const [novaSenhaRedefinir, setNovaSenhaRedefinir] = useState('');
+  const [confirmarSenhaRedefinir, setConfirmarSenhaRedefinir] = useState('');
+  const [redefinindoSenha, setRedefinindoSenha] = useState(false);
 
   // Limpa a URL removendo credenciais e parâmetros residuais (?alunoId=...&s=...) da barra de endereços
   const limparParametrosUrl = () => {
@@ -463,6 +470,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     if (iden) {
       setIdentificadorLogin(iden);
     }
+    // Sincroniza o perfil atualizado na nuvem imediatamente
+    salvarAlunoNaNuvem(aluno);
     setSenhaLogin('');
     setAlunoPendente(null);
   };
@@ -506,38 +515,49 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     const limpo = identificadorLogin.trim().toLowerCase();
     const digits = limpo.replace(/\D/g, '');
 
-    // 1. Busca nos alunos em memória (prop alunos)
-    let match = alunos.find((a) => {
+    // 1. Busca nos alunos locais do aparelho (localStorage) para capturar senha personalizada local
+    let alunoLocal: Aluno | null = null;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const salvoAlunos = localStorage.getItem('giano_alunos_db');
+        if (salvoAlunos) {
+          const lista: Aluno[] = JSON.parse(salvoAlunos);
+          alunoLocal = lista.find((a) => {
+            if (a.email && a.email.toLowerCase() === limpo) return true;
+            const telDigits = (a.telefone || '').replace(/\D/g, '');
+            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
+            return false;
+          }) || null;
+        }
+      } catch {}
+    }
+
+    // 2. Busca na memória (prop alunos)
+    const alunoMemoria = alunos.find((a) => {
       if (a.email && a.email.toLowerCase() === limpo) return true;
       const telDigits = (a.telefone || '').replace(/\D/g, '');
       if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
       return false;
     });
 
-    // 2. Busca no cache local do dispositivo
-    if (!match && typeof localStorage !== 'undefined') {
-      try {
-        const salvoAlunos = localStorage.getItem('giano_alunos_db');
-        if (salvoAlunos) {
-          const lista: Aluno[] = JSON.parse(salvoAlunos);
-          match = lista.find((a) => {
-            if (a.email && a.email.toLowerCase() === limpo) return true;
-            const telDigits = (a.telefone || '').replace(/\D/g, '');
-            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
-            return false;
-          });
-        }
-      } catch {}
-    }
+    // 3. Consulta a nuvem em tempo real
+    let cloudAluno: Aluno | null = null;
+    try {
+      cloudAluno = await buscarAlunoPorIdentificadorNaNuvem(limpo);
+    } catch {}
 
-    // 3. Se não encontrou no aparelho, consulta a nuvem em tempo real!
-    if (!match) {
-      try {
-        const cloudAluno = await buscarAlunoPorIdentificadorNaNuvem(limpo);
-        if (cloudAluno) {
-          match = cloudAluno;
-        }
-      } catch {}
+    // Monta o match mais completo e atualizado
+    let match: Aluno | null = null;
+    if (cloudAluno) {
+      match = {
+        ...cloudAluno,
+        senha: alunoLocal?.senha_alterada && alunoLocal.senha ? alunoLocal.senha : (cloudAluno.senha || alunoLocal?.senha || ''),
+        senha_alterada: cloudAluno.senha_alterada || alunoLocal?.senha_alterada || false,
+      };
+    } else if (alunoLocal) {
+      match = alunoLocal;
+    } else if (alunoMemoria) {
+      match = alunoMemoria;
     }
 
     if (!match) {
@@ -550,14 +570,29 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       return;
     }
 
-    const telDigits = (match.telefone || '').replace(/\D/g, '');
-    const senhaEsperada = (match.senha && match.senha.trim())
-      ? match.senha.trim()
-      : (telDigits.slice(-4) || '1234');
+    // Coleta todas as senhas válidas aceitas:
+    // 1. Senha definitiva do perfil
+    // 2. Senha pessoal salva no localStorage do aparelho
+    // 3. 4 últimos dígitos do WhatsApp
+    const senhaDigitada = senhaLogin.trim();
+    const telDigits = (match.telefone || alunoLocal?.telefone || '').replace(/\D/g, '');
+    const quatroDigitosWhats = telDigits.slice(-4);
 
-    if (senhaLogin.trim() !== senhaEsperada) {
-      toast.error('Senha incorreta. Digite a senha cadastrada com seu personal.');
+    const senhasValidas = new Set<string>();
+    if (match.senha && match.senha.trim()) senhasValidas.add(match.senha.trim());
+    if (alunoLocal?.senha && alunoLocal.senha.trim()) senhasValidas.add(alunoLocal.senha.trim());
+    if (quatroDigitosWhats) senhasValidas.add(quatroDigitosWhats);
+    if (senhasValidas.size === 0) senhasValidas.add('1234');
+
+    if (!senhasValidas.has(senhaDigitada)) {
+      toast.error('Senha incorreta. Digite sua senha pessoal ou os 4 últimos dígitos do WhatsApp.');
       return;
+    }
+
+    // Se o login foi aceito com uma senha pessoal nova, atualiza e sincroniza na nuvem
+    if (match.senha !== senhaDigitada) {
+      match = { ...match, senha: senhaDigitada, senha_alterada: true };
+      salvarAlunoNaNuvem(match);
     }
 
     processarSenhaCorreta(match);
@@ -585,6 +620,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       }
 
       const alunoAtualizado: Aluno = { ...alunoAlvo, senha: novaSenhaFinal, senha_alterada: true };
+      // Sincroniza imediatamente com a nuvem central
+      salvarAlunoNaNuvem(alunoAtualizado);
       efetivarEntradaAluno(alunoAtualizado);
 
       setModalTrocarSenhaAberto(false);
@@ -594,6 +631,86 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       toast.success('Senha atualizada com sucesso! Bom treino! 🔥');
     } catch {
       toast.error('Erro ao atualizar senha.');
+    }
+  };
+
+  const handleConfirmarRedefinicao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const limpo = (identificadorRedefinir || identificadorLogin).trim().toLowerCase();
+    const digits = limpo.replace(/\D/g, '');
+
+    if (!limpo) {
+      toast.error('Informe seu WhatsApp ou e-mail cadastrado.');
+      return;
+    }
+
+    if (novaSenhaRedefinir.trim().length < 4) {
+      toast.error('A nova senha deve ter no mínimo 4 caracteres.');
+      return;
+    }
+
+    if (novaSenhaRedefinir.trim() !== confirmarSenhaRedefinir.trim()) {
+      toast.error('As senhas não coincidem. Digite novamente.');
+      return;
+    }
+
+    setRedefinindoSenha(true);
+
+    // 1. Busca localmente ou na nuvem
+    let match: Aluno | null = null;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const salvo = localStorage.getItem('giano_alunos_db');
+        if (salvo) {
+          const lista: Aluno[] = JSON.parse(salvo);
+          match = lista.find((a) => {
+            if (a.email && a.email.toLowerCase() === limpo) return true;
+            const telDigits = (a.telefone || '').replace(/\D/g, '');
+            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
+            return false;
+          }) || null;
+        }
+      } catch {}
+    }
+
+    if (!match) {
+      match = alunos.find((a) => {
+        if (a.email && a.email.toLowerCase() === limpo) return true;
+        const telDigits = (a.telefone || '').replace(/\D/g, '');
+        if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
+        return false;
+      }) || null;
+    }
+
+    if (!match) {
+      try {
+        match = await buscarAlunoPorIdentificadorNaNuvem(limpo);
+      } catch {}
+    }
+
+    if (!match) {
+      setRedefinindoSenha(false);
+      toast.error('Aluno não encontrado. Verifique seu WhatsApp ou e-mail.');
+      return;
+    }
+
+    const novaSenhaFinal = novaSenhaRedefinir.trim();
+    const alunoAtualizado: Aluno = { ...match, senha: novaSenhaFinal, senha_alterada: true };
+
+    try {
+      if (onUpdateAluno) {
+        await onUpdateAluno(match.id, { senha: novaSenhaFinal, senha_alterada: true });
+      }
+      await salvarAlunoNaNuvem(alunoAtualizado);
+      efetivarEntradaAluno(alunoAtualizado);
+      setModalRedefinirAberto(false);
+      setNovaSenhaRedefinir('');
+      setConfirmarSenhaRedefinir('');
+      toast.success('Senha redefinida com sucesso! Bom treino! 🔥');
+    } catch {
+      toast.error('Erro ao redefinir senha. Tente novamente.');
+    } finally {
+      setRedefinindoSenha(false);
     }
   };
 
@@ -811,8 +928,21 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   <ArrowRight className="size-4 stroke-[3]" />
                 </button>
 
-                {exibirCardConvite && modoTrocarConta && (
-                  <div className="text-center pt-1">
+                <div className="text-center pt-1.5 flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIdentificadorRedefinir(identificadorLogin);
+                      setNovaSenhaRedefinir('');
+                      setConfirmarSenhaRedefinir('');
+                      setModalRedefinirAberto(true);
+                    }}
+                    className="text-xs text-amber-500/80 hover:text-amber-400 hover:underline cursor-pointer transition-colors"
+                  >
+                    Problemas com a senha? Redefinir senha
+                  </button>
+
+                  {exibirCardConvite && modoTrocarConta && (
                     <button
                       type="button"
                       onClick={() => {
@@ -823,8 +953,8 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                     >
                       Voltar ao convite de {primeiroNomeConvidado}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </form>
             </div>
           )}
@@ -974,6 +1104,99 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
                     >
                       Salvar Senha
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 3: REDEFINIÇÃO DE SENHA DO ALUNO */}
+          {modalRedefinirAberto && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-3xl p-6 text-white space-y-4 shadow-2xl relative animate-in zoom-in-95 duration-200">
+                <button
+                  type="button"
+                  onClick={() => setModalRedefinirAberto(false)}
+                  className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-white rounded-xl"
+                  title="Fechar"
+                >
+                  <X className="size-5" />
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+                    <KeyRound className="size-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white">
+                      Redefinir Senha
+                    </h3>
+                    <p className="text-[11px] text-neutral-400">
+                      Crie uma nova senha para entrar no app
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleConfirmarRedefinicao} className="space-y-3.5 pt-1">
+                  <div>
+                    <label className="text-xs font-bold text-neutral-300 block mb-1">
+                      WhatsApp ou E-mail Cadastrado *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ex: seu@email.com ou WhatsApp"
+                      value={identificadorRedefinir}
+                      onChange={(e) => setIdentificadorRedefinir(e.target.value)}
+                      className="w-full h-11 px-3.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-neutral-300 block mb-1">
+                      Nova Senha * (mínimo 4 dígitos)
+                    </label>
+                    <input
+                      type={verNovaSenha ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      placeholder="Digite sua nova senha"
+                      value={novaSenhaRedefinir}
+                      onChange={(e) => setNovaSenhaRedefinir(e.target.value)}
+                      className="w-full h-11 px-3.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-neutral-300 block mb-1">
+                      Confirmar Nova Senha *
+                    </label>
+                    <input
+                      type={verNovaSenha ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      placeholder="Repita sua nova senha"
+                      value={confirmarSenhaRedefinir}
+                      onChange={(e) => setConfirmarSenhaRedefinir(e.target.value)}
+                      className="w-full h-11 px-3.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setModalRedefinirAberto(false)}
+                      className="flex-1 h-11 rounded-xl bg-neutral-800 hover:bg-neutral-750 text-neutral-300 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={redefinindoSenha}
+                      className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-black text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {redefinindoSenha ? 'Salvando...' : 'Salvar e Entrar'}
                     </button>
                   </div>
                 </form>

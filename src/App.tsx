@@ -44,7 +44,7 @@ const ALUNOS_INICIAIS: Aluno[] = [
     dia_vencimento: 10,
     ativo: true,
     app_liberado: true,
-    senha: "2003",
+    senha: "",
     treinos_ids: ["tr_peito_triceps_1"],
   },
   {
