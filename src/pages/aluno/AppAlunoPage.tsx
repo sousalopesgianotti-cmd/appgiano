@@ -463,17 +463,39 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     processarSenhaCorreta(alunoConvidado);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const limpo = identificadorLogin.trim().toLowerCase();
     const digits = limpo.replace(/\D/g, '');
 
-    const match = alunos.find((a) => {
-      if (a.email.toLowerCase() === limpo) return true;
-      const telDigits = a.telefone.replace(/\D/g, '');
+    let match = alunos.find((a) => {
+      if (a.email && a.email.toLowerCase() === limpo) return true;
+      const telDigits = (a.telefone || '').replace(/\D/g, '');
       if (digits && telDigits.endsWith(digits)) return true;
       return false;
     });
+
+    // Se não encontrou no banco local, consulta a nuvem da aplicação!
+    if (!match) {
+      try {
+        const resp = await fetch('/api/sync');
+        if (resp.ok) {
+          const json = await resp.json();
+          const alunosNuvem = Object.values(json?.alunos || {}) as any[];
+          const matchItem = alunosNuvem.find((item: any) => {
+            const al = item.aluno || item;
+            const alEmail = (al.email || '').toLowerCase();
+            if (alEmail && alEmail === limpo) return true;
+            const alTel = (al.telefone || '').replace(/\D/g, '');
+            if (digits && alTel.endsWith(digits)) return true;
+            return false;
+          });
+          if (matchItem) {
+            match = matchItem.aluno || matchItem;
+          }
+        }
+      } catch {}
+    }
 
     if (!match) {
       toast.error('Aluno não encontrado. Verifique seu WhatsApp ou e-mail.');
@@ -485,7 +507,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       return;
     }
 
-    const telDigits = match.telefone.replace(/\D/g, '');
+    const telDigits = (match.telefone || '').replace(/\D/g, '');
     const senhaEsperada = (match.senha && match.senha.trim())
       ? match.senha.trim()
       : (telDigits.slice(-4) || '1234');
@@ -540,9 +562,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     }
     limparParametrosUrl();
     setMenuAberto(false);
-    if (onLogout) {
-      onLogout();
-    }
+    toast.info('Sessão encerrada com sucesso.');
   };
 
   const toggleSerie = (exIdx: number, serieNum: number, descanso: number) => {
@@ -584,7 +604,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
       : '';
 
     return (
-      <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 w-full max-w-full overflow-x-hidden touch-pan-y">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-2">
@@ -912,9 +932,9 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   const exercicioAtual: ExercicioItemTreino | undefined = treinoAtivo?.exercicios?.[exercicioIdx];
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-start select-none">
-      {/* CONTAINER MOBILE (Máximo 430px de largura simulando tela de smartphone) */}
-      <div className="w-full max-w-md min-h-screen bg-neutral-950 flex flex-col relative sm:border-x sm:border-neutral-800 shadow-2xl overflow-x-hidden">
+    <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-start select-none w-full max-w-full overflow-x-hidden">
+      {/* CONTAINER MOBILE (Fluido no smartphone, com largura máxima contida) */}
+      <div className="w-full max-w-md mx-auto min-h-screen bg-neutral-950 flex flex-col relative sm:border-x sm:border-neutral-800 shadow-2xl overflow-x-hidden touch-pan-y">
         
         {/* Input Oculto de Arquivo para Upload da Foto de Perfil */}
         <input

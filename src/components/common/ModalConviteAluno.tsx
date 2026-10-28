@@ -204,17 +204,6 @@ export const ModalConviteAluno: React.FC<ModalConviteAlunoProps> = ({
             )}
           </div>
         </div>
-
-        {/* Rodapé com botão Concluir */}
-        <div className="mt-6 pt-4 border-t border-neutral-800 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-750 text-neutral-200 font-bold text-xs sm:text-sm active:scale-95 transition-all cursor-pointer"
-          >
-            Concluir
-          </button>
-        </div>
       </div>
     </div>
   );

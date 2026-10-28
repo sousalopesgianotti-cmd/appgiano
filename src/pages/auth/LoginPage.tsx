@@ -111,7 +111,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores =
     toast.success(`Tempo de transição da tela definido para ${segundos === 0 ? 'Manual' : segundos + 's'}!`);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuario.trim()) {
       toast.error('Informe seu usuário ou e-mail de acesso.');
@@ -123,83 +123,112 @@ export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores =
     }
 
     setCarregando(true);
+    const emailLimpo = usuario.trim().toLowerCase();
+    const digits = emailLimpo.replace(/\D/g, '');
 
-    setTimeout(() => {
-      setCarregando(false);
-      const emailLimpo = usuario.trim().toLowerCase();
-      const digits = emailLimpo.replace(/\D/g, '');
+    // 1. Identificação de ALUNO: busca local
+    let alunoMatch = alunos.find((a) => {
+      if (a.email && a.email.toLowerCase() === emailLimpo) return true;
+      const telDigits = (a.telefone || '').replace(/\D/g, '');
+      if (digits && telDigits.endsWith(digits)) return true;
+      return false;
+    });
 
-      // 1. Identificação de ALUNO: busca na lista de alunos cadastrados
-      const alunoMatch = alunos.find((a) => {
-        if (a.email.toLowerCase() === emailLimpo) return true;
-        const telDigits = a.telefone.replace(/\D/g, '');
-        if (digits && telDigits.endsWith(digits)) return true;
-        return false;
-      });
-
-      if (alunoMatch) {
-        if (alunoMatch.ativo === false) {
-          toast.error('Seu acesso está pausado. Fale com seu personal trainer.');
-          return;
+    // Se não encontrou localmente, busca na nuvem /api/sync
+    if (!alunoMatch) {
+      try {
+        const resp = await fetch('/api/sync');
+        if (resp.ok) {
+          const json = await resp.json();
+          const alunosNuvem = Object.values(json?.alunos || {}) as any[];
+          const matchItem = alunosNuvem.find((item: any) => {
+            const al = item.aluno || item;
+            const alEmail = (al.email || '').toLowerCase();
+            if (alEmail && alEmail === emailLimpo) return true;
+            const alTel = (al.telefone || '').replace(/\D/g, '');
+            if (digits && alTel.endsWith(digits)) return true;
+            return false;
+          });
+          if (matchItem) {
+            alunoMatch = matchItem.aluno || matchItem;
+          }
         }
+      } catch {}
+    }
 
-        const telDigits = alunoMatch.telefone.replace(/\D/g, '');
-        const senhaEsperada = (alunoMatch.senha && alunoMatch.senha.trim())
-          ? alunoMatch.senha.trim()
-          : (telDigits.slice(-4) || '1234');
+    setCarregando(false);
 
-        if (senha.trim() !== senhaEsperada) {
-          toast.error('Senha incorreta. Digite a senha cadastrada com seu personal.');
-          return;
-        }
-
-        toast.success(`Bem-vindo(a), ${alunoMatch.nome.split(' ')[0]}! Acessando app do aluno...`);
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('giano_aluno_ativo_id', alunoMatch.id);
-        }
-        onLogin({
-          id: alunoMatch.id,
-          nome: alunoMatch.nome,
-          email: alunoMatch.email,
-          role: 'aluno',
-        });
+    if (alunoMatch) {
+      if (alunoMatch.ativo === false) {
+        toast.error('Seu acesso está pausado. Fale com seu personal trainer.');
         return;
       }
 
-      // 2. Identificação de PROFESSOR: busca na lista de professores ou no admin André Gianotti
-      const professorMatch = professores.find((p) => {
-        if (p.email.toLowerCase() === emailLimpo) return true;
-        const telDigits = p.telefone.replace(/\D/g, '');
-        if (digits && telDigits.endsWith(digits)) return true;
-        return false;
-      });
+      const telDigits = (alunoMatch.telefone || '').replace(/\D/g, '');
+      const senhaEsperada = (alunoMatch.senha && alunoMatch.senha.trim())
+        ? alunoMatch.senha.trim()
+        : (telDigits.slice(-4) || '1234');
 
-      const isAndre = emailLimpo === 'sousalopesgianotti@gmail.com' ||
-        emailLimpo.includes('gianotti') ||
-        emailLimpo === 'andre@giano.com.br' ||
-        emailLimpo === 'admin' ||
-        emailLimpo === 'professor';
-
-      if (professorMatch || isAndre) {
-        const prof = professorMatch || {
-          id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
-          nome: 'André Gianotti',
-          email: 'sousalopesgianotti@gmail.com',
-        };
-
-        toast.success(`Bem-vindo, ${prof.nome.split(' ')[0]}! Acessando painel de gestão...`);
-        onLogin({
-          id: prof.id,
-          nome: prof.nome,
-          email: prof.email,
-          role: 'professor',
-        });
+      if (senha.trim() !== senhaEsperada) {
+        toast.error('Senha incorreta. Digite a senha cadastrada com seu personal.');
         return;
       }
 
-      // 3. Credenciais inválidas
-      toast.error('Usuário não encontrado. Verifique seu e-mail ou WhatsApp digitado.');
-    }, 400);
+      toast.success(`Bem-vindo(a), ${alunoMatch.nome.split(' ')[0]}! Acessando app do aluno...`);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('giano_aluno_ativo_id', alunoMatch.id);
+        try {
+          const salvo = localStorage.getItem('giano_alunos_db');
+          let list: Aluno[] = salvo ? JSON.parse(salvo) : [];
+          if (!list.some((a) => a.id === alunoMatch.id)) {
+            list.push(alunoMatch);
+            localStorage.setItem('giano_alunos_db', JSON.stringify(list));
+          }
+        } catch {}
+      }
+      onLogin({
+        id: alunoMatch.id,
+        nome: alunoMatch.nome,
+        email: alunoMatch.email,
+        role: 'aluno',
+      });
+      return;
+    }
+
+    // 2. Identificação de PROFESSOR: busca na lista de professores ou no admin André Gianotti
+    const professorMatch = professores.find((p) => {
+      if (p.email.toLowerCase() === emailLimpo) return true;
+      const telDigits = p.telefone.replace(/\D/g, '');
+      if (digits && telDigits.endsWith(digits)) return true;
+      return false;
+    });
+
+    const isAndre =
+      emailLimpo === 'sousalopesgianotti@gmail.com' ||
+      emailLimpo.includes('gianotti') ||
+      emailLimpo === 'andre@giano.com.br' ||
+      emailLimpo === 'admin' ||
+      emailLimpo === 'professor';
+
+    if (professorMatch || isAndre) {
+      const prof = professorMatch || {
+        id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
+        nome: 'André Gianotti',
+        email: 'sousalopesgianotti@gmail.com',
+      };
+
+      toast.success(`Bem-vindo, ${prof.nome.split(' ')[0]}! Acessando painel de gestão...`);
+      onLogin({
+        id: prof.id,
+        nome: prof.nome,
+        email: prof.email,
+        role: 'professor',
+      });
+      return;
+    }
+
+    // 3. Credenciais inválidas
+    toast.error('Usuário não encontrado. Verifique seu e-mail ou WhatsApp digitado.');
   };
 
   const loginComoPersonalDemo = () => {

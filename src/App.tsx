@@ -315,8 +315,11 @@ function AppContent() {
       localStorage.removeItem('giano_auth_session');
       localStorage.removeItem('giano_aluno_ativo_id');
     }
+    // Se estiver no aplicativo do aluno (/app), preserva a rota para mantê-lo no login de aluno
     if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState({}, '', '/');
+      if (!window.location.pathname.startsWith('/app')) {
+        window.history.pushState({}, '', '/');
+      }
     }
     toast.info('Sessão encerrada com sucesso.');
   };
@@ -349,6 +352,8 @@ function AppContent() {
           listaAtual[idx] = {
             ...alunoUrl,
             ...existente,
+            email: existente.email || alunoUrl.email || '',
+            telefone: existente.telefone || alunoUrl.telefone || '',
             senha: senhaDefinitiva,
             treinos_ids:
               existente.treinos_ids && existente.treinos_ids.length > 0

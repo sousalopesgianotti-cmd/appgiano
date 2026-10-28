@@ -15,6 +15,12 @@ export function gerarLinkConvite(origin: string, aluno: Aluno, _treinosDisponive
   params.set('alunoId', aluno.id);
   params.set('n', primeiroNome);
   params.set('s', senhaProvisoria);
+  if (aluno.email) {
+    params.set('e', aluno.email.trim().toLowerCase());
+  }
+  if (aluno.telefone) {
+    params.set('p', aluno.telefone.replace(/\D/g, ''));
+  }
   if (aluno.treinos_ids && aluno.treinos_ids.length > 0) {
     params.set('t', aluno.treinos_ids.join(','));
   }
@@ -31,6 +37,8 @@ export function extrairAlunoDoLink(searchParams: URLSearchParams): Aluno | null 
 
   const nome = searchParams.get('n') || searchParams.get('nome') || 'Aluno';
   const senha = searchParams.get('s') || searchParams.get('senha') || '';
+  const email = searchParams.get('e') || searchParams.get('email') || '';
+  const telefone = searchParams.get('p') || searchParams.get('telefone') || searchParams.get('tel') || (senha ? `1199999${senha}` : '');
   const treinosStr = searchParams.get('t') || '';
   const treinos_ids = treinosStr ? treinosStr.split(',').filter(Boolean) : [];
 
@@ -38,8 +46,8 @@ export function extrairAlunoDoLink(searchParams: URLSearchParams): Aluno | null 
     id,
     professor_id: '8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d',
     nome,
-    email: '',
-    telefone: senha ? `1199999${senha}` : '',
+    email,
+    telefone,
     nascimento: '01/01/2000',
     grupo: 'Geral',
     valor_mensalidade: 0,
