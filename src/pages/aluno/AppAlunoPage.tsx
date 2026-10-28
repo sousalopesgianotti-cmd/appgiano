@@ -129,10 +129,39 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   }, [alunoIdInicial, alunos]);
 
   // Estados de Login e Convite
-  const [identificadorLogin, setIdentificadorLogin] = useState('');
+  const [identificadorLogin, setIdentificadorLogin] = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      const salvo = localStorage.getItem('giano_ultimo_identificador');
+      if (salvo) return salvo;
+    }
+    return '';
+  });
   const [senhaLogin, setSenhaLogin] = useState('');
   const [verSenha, setVerSenha] = useState(false);
   const [modoTrocarConta, setModoTrocarConta] = useState(false);
+
+  // Pré-carrega o identificador se houver convite ativo no momento
+  useEffect(() => {
+    if (!identificadorLogin && alunoConvidado) {
+      const iden = alunoConvidado.email || alunoConvidado.telefone || '';
+      if (iden) setIdentificadorLogin(iden);
+    }
+  }, [alunoConvidado, identificadorLogin]);
+
+  // O card de convite provisório só deve aparecer se o aluno ainda NÃO realizou o primeiro acesso e NÃO definiu senha pessoal
+  const exibirCardConvite = React.useMemo(() => {
+    if (!alunoConvidado) return false;
+    if (modoTrocarConta) return false;
+    // Se o aluno já definiu senha pessoal, nunca mais exibe convite provisório
+    if (alunoConvidado.senha_alterada) return false;
+    // Se o aparelho já registrou primeiro acesso para este aluno
+    if (typeof localStorage !== 'undefined') {
+      if (localStorage.getItem(`giano_convite_usado_${alunoConvidado.id}`) === 'true') {
+        return false;
+      }
+    }
+    return true;
+  }, [alunoConvidado, modoTrocarConta]);
 
   // Estados de Primeiro Acesso e Troca de Senha
   const [alunoPendente, setAlunoPendente] = useState<Aluno | null>(null);
@@ -413,6 +442,11 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     limparParametrosUrl();
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('giano_aluno_ativo_id', aluno.id);
+      localStorage.setItem(`giano_convite_usado_${aluno.id}`, 'true');
+      const iden = aluno.email || aluno.telefone || '';
+      if (iden) {
+        localStorage.setItem('giano_ultimo_identificador', iden);
+      }
       try {
         const salvoAlunos = localStorage.getItem('giano_alunos_db');
         let lista: Aluno[] = salvoAlunos ? JSON.parse(salvoAlunos) : [];
@@ -424,6 +458,10 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
         }
         localStorage.setItem('giano_alunos_db', JSON.stringify(lista));
       } catch {}
+    }
+    const iden = aluno.email || aluno.telefone || '';
+    if (iden) {
+      setIdentificadorLogin(iden);
     }
     setSenhaLogin('');
     setAlunoPendente(null);
@@ -555,6 +593,19 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
   };
 
   const handleLogout = () => {
+    if (alunoLogado) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(`giano_convite_usado_${alunoLogado.id}`, 'true');
+        const iden = alunoLogado.email || alunoLogado.telefone || '';
+        if (iden) {
+          localStorage.setItem('giano_ultimo_identificador', iden);
+        }
+      }
+      const iden = alunoLogado.email || alunoLogado.telefone || '';
+      if (iden) {
+        setIdentificadorLogin(iden);
+      }
+    }
     setAlunoLogado(null);
     setAlunoPendente(null);
     if (typeof localStorage !== 'undefined') {
@@ -617,7 +668,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
           </div>
 
           {/* CARD DE LOGIN DE CONVITE PERSONALIZADO */}
-          {alunoConvidado && !modoTrocarConta ? (
+          {exibirCardConvite && alunoConvidado ? (
             <div className="rounded-3xl border border-neutral-800 bg-neutral-900/90 p-6 shadow-2xl backdrop-blur space-y-5 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center gap-3.5 pb-4 border-b border-neutral-800">
                 <div className="size-12 rounded-2xl bg-amber-500 text-neutral-950 font-black text-base flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
@@ -724,7 +775,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                 <div>
                   <label className="text-xs font-bold text-neutral-300 flex items-center justify-between mb-1.5">
                     <span>Senha de Acesso</span>
-                    <span className="text-[10px] text-amber-500">Padrão: 4 últimos dígitos do WhatsApp</span>
+                    <span className="text-[10px] text-amber-500 font-normal">Sua senha cadastrada</span>
                   </label>
                   <div className="relative">
                     <input
@@ -732,7 +783,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                       name="password"
                       autoComplete="current-password"
                       required
-                      placeholder="Sua senha"
+                      placeholder="Digite sua senha"
                       value={senhaLogin}
                       onChange={(e) => setSenhaLogin(e.target.value)}
                       className="w-full h-11 px-3.5 pr-11 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
@@ -755,7 +806,7 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
                   <ArrowRight className="size-4 stroke-[3]" />
                 </button>
 
-                {alunoConvidado && (
+                {exibirCardConvite && modoTrocarConta && (
                   <div className="text-center pt-1">
                     <button
                       type="button"
