@@ -22,6 +22,7 @@ import type { Aluno, Treino, Exercicio, PastaExercicio } from '@/lib/types';
 import { TreinosAlunoNexurView } from './TreinosAlunoNexurView';
 import { ViewModeToggle } from '@/components/common/ViewModeToggle';
 import { ModalConviteAluno, type StatusEnvioEmail } from '@/components/common/ModalConviteAluno';
+import { ModalCompartilharAcessoAluno } from '@/components/common/ModalCompartilharAcessoAluno';
 import { enviarEmailConviteAluno } from '@/lib/emailService';
 import { gerarLinkConvite, gerarLinkAcessoAluno, gerarMensagemWhatsAppAluno } from '@/lib/convite';
 import { toast } from 'sonner';
@@ -68,6 +69,15 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
   const [alunoConvite, setAlunoConvite] = useState<Aluno | null>(null);
   const [statusEmail, setStatusEmail] = useState<StatusEnvioEmail>('idle');
   const [mensagemEmail, setMensagemEmail] = useState('');
+
+  // Estados do Modal Inteligente de Compartilhamento de Acesso
+  const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
+  const [alunoCompartilhar, setAlunoCompartilhar] = useState<Aluno | null>(null);
+
+  const abrirCompartilhar = (aluno: Aluno) => {
+    setAlunoCompartilhar(aluno);
+    setModalCompartilharAberto(true);
+  };
 
   // Estados de Prescrição de Treinos
   const [alunoPrescrevendo, setAlunoPrescrevendo] = useState<Aluno | null>(null);
@@ -522,11 +532,11 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                       <Dumbbell className="size-4" />
                     </button>
 
-                    {/* Copiar Link WhatsApp */}
+                    {/* Compartilhar Acesso / Link do App / Convite */}
                     <button
-                      onClick={() => copiarLinkApp(aluno.id, aluno.nome)}
-                      className="p-2 rounded-xl text-neutral-500 hover:text-emerald-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                      title="Copiar Link de Acesso do Aluno para WhatsApp"
+                      onClick={() => abrirCompartilhar(aluno)}
+                      className="p-2 rounded-xl text-neutral-500 hover:text-emerald-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                      title="Compartilhar Acesso (Link do App Oficial ou 1º Acesso)"
                     >
                       <Share2 className="size-4" />
                     </button>
@@ -630,9 +640,9 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
                     <Dumbbell className="size-4" />
                   </button>
                   <button
-                    onClick={() => copiarLinkApp(aluno.id, aluno.nome)}
-                    className="p-1.5 text-neutral-400 hover:text-emerald-500 rounded-lg transition-colors"
-                    title="Copiar Link"
+                    onClick={() => abrirCompartilhar(aluno)}
+                    className="p-1.5 text-neutral-400 hover:text-emerald-500 rounded-lg transition-colors cursor-pointer"
+                    title="Compartilhar Acesso (Link do App Oficial ou 1º Acesso)"
                   >
                     <Share2 className="size-4" />
                   </button>
@@ -816,6 +826,15 @@ export const ClientesPage: React.FC<ClientesPageProps> = ({
         mensagemEmail={mensagemEmail}
         onReenviarEmail={alunoConvite ? () => dispararEmailConvite(alunoConvite) : undefined}
         treinos={treinos}
+      />
+
+      {/* MODAL INTELIGENTE DE COMPARTILHAMENTO DE ACESSO E RESET */}
+      <ModalCompartilharAcessoAluno
+        isOpen={modalCompartilharAberto}
+        onClose={() => setModalCompartilharAberto(false)}
+        aluno={alunoCompartilhar}
+        treinos={treinos}
+        onUpdateAluno={onUpdateAluno}
       />
 
       {/* MODAL DE PRESCRIÇÃO DE TREINOS DO ALUNO */}
