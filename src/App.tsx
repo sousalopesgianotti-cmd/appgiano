@@ -15,7 +15,7 @@ import { TreinosPage } from '@/pages/professor/TreinosPage';
 import { DEFAULT_EXERCICIOS, PASTAS_PADRAO } from '@/lib/exercicios.data';
 import type { Aluno, Treino, AppRole, Professor, Exercicio, PastaExercicio, AvaliacaoFisica, TreinoExecucao } from '@/lib/types';
 import { extrairAlunoDoLink } from '@/lib/convite';
-import { enviarTreinosParaNuvem, salvarAlunoNaNuvem, sincronizarLoteAlunos } from '@/lib/syncService';
+import { enviarTreinosParaNuvem, salvarAlunoNaNuvem, sincronizarLoteAlunos, removerAlunoDaNuvem } from '@/lib/syncService';
 import { Monitor } from 'lucide-react';
 
 // Sincronização e limpeza automática de dados mock legados na versão oficial de produção
@@ -30,54 +30,8 @@ if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
   }
 }
 
-// Dados iniciais de Alunos
-const ALUNOS_INICIAIS: Aluno[] = [
-  {
-    id: "6e81009c-5a6f-499c-8fb6-677637612111",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "André Lopes",
-    email: "andre_lopes2003@yahoo.com.br",
-    telefone: "11999992003",
-    nascimento: "01/01/1990",
-    grupo: "Hipertrofia",
-    valor_mensalidade: 200,
-    dia_vencimento: 10,
-    ativo: true,
-    app_liberado: true,
-    senha: "",
-    treinos_ids: ["tr_peito_triceps_1"],
-  },
-  {
-    id: "a1b2c3d4-0003-4000-8000-000000000003",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "Maria Jose Moreira",
-    email: "mariajose@email.com",
-    telefone: "11966665555",
-    nascimento: "25/05/1970",
-    grupo: "Condicionamento",
-    valor_mensalidade: 0,
-    dia_vencimento: 0,
-    ativo: true,
-    app_liberado: true,
-    senha: "5555",
-    treinos_ids: [],
-  },
-  {
-    id: "7132f4da-920a-4bb0-9db2-ab6af05c5d7a",
-    professor_id: "8e90e5b0-ac3a-4812-ad25-6a4ff6c40b8d",
-    nome: "Murillo Moreira",
-    email: "murillofaixapreta@gmail.com",
-    telefone: "11999996692",
-    nascimento: "15/06/2008",
-    grupo: "Hipertrofia",
-    valor_mensalidade: 180,
-    dia_vencimento: 10,
-    ativo: true,
-    app_liberado: true,
-    senha: "6692",
-    treinos_ids: [],
-  },
-];
+// Dados iniciais de Alunos (base limpa para produção)
+const ALUNOS_INICIAIS: Aluno[] = [];
 
 const TREINOS_INICIAIS: Treino[] = [
   {
@@ -489,6 +443,22 @@ function AppContent() {
     setAlunos((prev) => prev.filter((a) => a.id !== id));
     setAvaliacoes((prev) => prev.filter((av) => av.aluno_id !== id));
     setExecucoes((prev) => prev.filter((ex) => ex.aluno_id !== id));
+
+    // Limpa tokens e sessão local caso o dispositivo tenha a sessão do aluno aberta
+    if (typeof localStorage !== 'undefined') {
+      const ativo = localStorage.getItem('giano_aluno_ativo_id');
+      if (ativo === id) {
+        localStorage.removeItem('giano_aluno_ativo_id');
+      }
+      localStorage.removeItem(`giano_convite_usado_${id}`);
+    }
+
+    // Purgar definitivamente do repositório em nuvem em tempo real
+    try {
+      await removerAlunoDaNuvem(id);
+    } catch (err) {
+      console.warn('Erro ao purgar aluno da nuvem:', err);
+    }
   };
 
   // Gestão das Pastas Musculares

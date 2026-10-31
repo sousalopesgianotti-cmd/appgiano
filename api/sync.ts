@@ -10,7 +10,7 @@ const CLOUD_HEADERS = {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -18,6 +18,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // DELETE ou POST action=delete: Purgar aluno definitivamente da nuvem
+    if (req.method === 'DELETE' || (req.method === 'POST' && req.body?.action === 'delete')) {
+      const alunoId = (req.query.alunoId as string) || req.body?.alunoId || '';
+      if (!alunoId) {
+        return res.status(400).json({ error: 'alunoId é obrigatório para exclusão' });
+      }
+
+      let registroAtual: Record<string, any> = {};
+      try {
+        const respAtual = await fetch(CLOUD_STORE_URL, { headers: CLOUD_HEADERS });
+        if (respAtual.ok) {
+          const jsonAtual = await respAtual.json();
+          registroAtual = jsonAtual?.data?.alunos || {};
+        }
+      } catch (err: any) {
+        console.warn('Erro ao conectar ao storage para exclusão:', err);
+      }
+
+      if (registroAtual[alunoId]) {
+        delete registroAtual[alunoId];
+      }
+
+      const respSave = await fetch(CLOUD_STORE_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...CLOUD_HEADERS,
+        },
+        body: JSON.stringify({
+          name: 'GIANO_SYNC_REGISTRY',
+          data: {
+            updatedAt: new Date().toISOString(),
+            alunos: registroAtual,
+          },
+        }),
+      });
+
+      if (!respSave.ok) {
+        return res.status(500).json({ ok: false, error: 'Falha ao salvar no storage após exclusão' });
+      }
+
+      return res.status(200).json({ ok: true, deletedAlunoId: alunoId, purgedAt: new Date().toISOString() });
+    }
+
     // GET: Busca dados de treinos ou alunos da nuvem
     if (req.method === 'GET') {
       const alunoId = (req.query.alunoId as string) || '';

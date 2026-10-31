@@ -128,6 +128,68 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     }
   }, [alunoIdInicial, alunos]);
 
+  // Verificação de Integridade de Sessão: se o aluno foi excluído pelo personal, encerra imediatamente a sessão
+  useEffect(() => {
+    if (!alunoLogado?.id) return;
+    let cancelado = false;
+
+    const checarIntegridadeSessao = async () => {
+      // 1. Se estiver no mesmo ambiente com lista de alunos e o aluno não estiver nela
+      if (alunos.length > 0 && !alunos.some((a) => a.id === alunoLogado.id)) {
+        forcarLogoutAlunoExcluido();
+        return;
+      }
+
+      // 2. Consulta a nuvem central em tempo real
+      try {
+        const dadosNuvem = await buscarTreinosDaNuvem(alunoLogado.id);
+        if (cancelado) return;
+        // Se a nuvem não possuir nenhum registro do aluno, o cadastro foi excluído
+        if (!dadosNuvem || !dadosNuvem.aluno || !dadosNuvem.alunoId) {
+          forcarLogoutAlunoExcluido();
+        }
+      } catch {}
+    };
+
+    const forcarLogoutAlunoExcluido = () => {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('giano_aluno_ativo_id');
+        localStorage.removeItem('giano_treinos_nuvem_cache');
+        localStorage.removeItem(`giano_convite_usado_${alunoLogado.id}`);
+        // Purga o aluno do localStorage deste aparelho
+        try {
+          const salvo = localStorage.getItem('giano_alunos_db');
+          if (salvo) {
+            const lista: Aluno[] = JSON.parse(salvo);
+            const filtrada = lista.filter((a) => a.id !== alunoLogado.id);
+            localStorage.setItem('giano_alunos_db', JSON.stringify(filtrada));
+          }
+        } catch {}
+      }
+      setAlunoLogado(null);
+      toast.error('Seu cadastro foi removido pelo seu treinador. Acesso encerrado.', {
+        duration: 7000,
+      });
+    };
+
+    checarIntegridadeSessao();
+
+    // Revalida automaticamente sempre que o atleta abrir o celular ou voltar para a aba
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checarIntegridadeSessao();
+      }
+    };
+    window.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onVisibilityChange);
+
+    return () => {
+      cancelado = true;
+      window.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onVisibilityChange);
+    };
+  }, [alunoLogado?.id, alunos]);
+
   // Estados de Login e Convite
   const [identificadorLogin, setIdentificadorLogin] = useState(() => {
     if (typeof localStorage !== 'undefined') {
@@ -492,6 +554,12 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
     e.preventDefault();
     if (!alunoConvidado) return;
 
+    // Se o professor removeu o aluno e a lista está carregada, bloqueia imediatamente
+    if (alunos.length > 0 && !alunos.some((a) => a.id === alunoConvidado.id)) {
+      toast.error('Aluno não encontrado. Este cadastro foi removido pelo treinador.');
+      return;
+    }
+
     if (alunoConvidado.ativo === false) {
       toast.error('Seu acesso está pausado. Fale com seu personal trainer.');
       return;
@@ -554,10 +622,22 @@ export const AppAlunoPage: React.FC<AppAlunoPageProps> = ({
         senha: alunoLocal?.senha_alterada && alunoLocal.senha ? alunoLocal.senha : (cloudAluno.senha || alunoLocal?.senha || ''),
         senha_alterada: cloudAluno.senha_alterada || alunoLocal?.senha_alterada || false,
       };
-    } else if (alunoLocal) {
-      match = alunoLocal;
-    } else if (alunoMemoria) {
+    } else if (alunoMemoria && alunos.some((a) => a.id === alunoMemoria.id)) {
       match = alunoMemoria;
+    } else if (alunoLocal) {
+      // Se encontrou no localStorage local mas a nuvem e memória confirmam que não existe mais:
+      // O aluno foi excluído pelo treinador! Purga o resíduo do aparelho e rejeita o login.
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const salvoAlunos = localStorage.getItem('giano_alunos_db');
+          if (salvoAlunos) {
+            const lista: Aluno[] = JSON.parse(salvoAlunos);
+            const filtrada = lista.filter((a) => a.id !== alunoLocal!.id);
+            localStorage.setItem('giano_alunos_db', JSON.stringify(filtrada));
+          }
+        } catch {}
+      }
+      match = null;
     }
 
     if (!match) {

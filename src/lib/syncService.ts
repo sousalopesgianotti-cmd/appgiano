@@ -27,6 +27,70 @@ export async function enviarTreinosParaNuvem(
 }
 
 /**
+ * Remove definitivamente um aluno da nuvem central (purga total sem vestígios)
+ */
+export async function removerAlunoDaNuvem(alunoId: string): Promise<boolean> {
+  if (!alunoId) return false;
+
+  // 1. Tenta endpoint da Vercel /api/sync com DELETE
+  try {
+    const res = await fetch(`/api/sync?alunoId=${encodeURIComponent(alunoId)}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      return true;
+    }
+  } catch {}
+
+  // 1.2 Fallback POST com action: 'delete'
+  try {
+    const resPost = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', alunoId }),
+    });
+    if (resPost.ok) {
+      return true;
+    }
+  } catch {}
+
+  // 2. Fallback direto de alta resiliência ao repositório mestre
+  try {
+    let registroAtual: Record<string, any> = {};
+    const respAtual = await fetch(CLOUD_FALLBACK_URL, { headers: SYNC_HEADERS });
+    if (respAtual.ok) {
+      const data = await respAtual.json();
+      registroAtual = data?.data?.alunos || {};
+    }
+
+    if (registroAtual[alunoId]) {
+      delete registroAtual[alunoId];
+
+      const respSave = await fetch(CLOUD_FALLBACK_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...SYNC_HEADERS,
+        },
+        body: JSON.stringify({
+          name: 'GIANO_SYNC_REGISTRY',
+          data: {
+            updatedAt: new Date().toISOString(),
+            alunos: registroAtual,
+          },
+        }),
+      });
+
+      return respSave.ok;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Falha na remoção do aluno na nuvem:', e);
+    return false;
+  }
+}
+
+/**
  * Salva ou atualiza os dados completos de um aluno na nuvem
  */
 export async function salvarAlunoNaNuvem(

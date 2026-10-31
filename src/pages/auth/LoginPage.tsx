@@ -127,7 +127,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores =
     const emailLimpo = usuario.trim().toLowerCase();
     const digits = emailLimpo.replace(/\D/g, '');
 
-    // 1. Identificação de ALUNO: busca local (memória)
+    // 1. Identificação de ALUNO: busca local (memória do professor)
     let alunoMatch = alunos.find((a) => {
       if (a.email && a.email.toLowerCase() === emailLimpo) return true;
       const telDigits = (a.telefone || '').replace(/\D/g, '');
@@ -135,28 +135,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ alunos = [], professores =
       return false;
     });
 
-    // 2. Busca no cache do dispositivo (localStorage)
-    if (!alunoMatch && typeof localStorage !== 'undefined') {
+    // 2. Consulta a nuvem em tempo real (fonte de verdade soberana entre múltiplos aparelhos)
+    let cloudAluno: Aluno | null = null;
+    try {
+      cloudAluno = await buscarAlunoPorIdentificadorNaNuvem(emailLimpo);
+    } catch {}
+
+    if (cloudAluno) {
+      alunoMatch = cloudAluno;
+    } else if (!alunoMatch && typeof localStorage !== 'undefined') {
+      // Se não encontrou na nuvem nem na memória do professor, qualquer dado local é resíduo de aluno excluído
       try {
         const salvoAlunos = localStorage.getItem('giano_alunos_db');
         if (salvoAlunos) {
           const lista: Aluno[] = JSON.parse(salvoAlunos);
-          alunoMatch = lista.find((a) => {
-            if (a.email && a.email.toLowerCase() === emailLimpo) return true;
+          const filtrada = lista.filter((a) => {
+            if (a.email && a.email.toLowerCase() === emailLimpo) return false;
             const telDigits = (a.telefone || '').replace(/\D/g, '');
-            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return true;
-            return false;
+            if (digits && digits.length >= 4 && telDigits.endsWith(digits)) return false;
+            return true;
           });
-        }
-      } catch {}
-    }
-
-    // 3. Se não encontrou no aparelho, consulta a nuvem em tempo real!
-    if (!alunoMatch) {
-      try {
-        const cloudAluno = await buscarAlunoPorIdentificadorNaNuvem(emailLimpo);
-        if (cloudAluno) {
-          alunoMatch = cloudAluno;
+          localStorage.setItem('giano_alunos_db', JSON.stringify(filtrada));
         }
       } catch {}
     }
